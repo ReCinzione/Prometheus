@@ -431,7 +431,7 @@ export default function ArchivioClient({ user }: { user: User }) {
                               <DialogTitle>Eliminare il capitolo?</DialogTitle>
                             </DialogHeader>
                             <p className="text-sm text-muted-foreground mb-4">
-                              Questa azione non può essere annullata. Il capitolo "{capitolo.titolo}" sarà eliminato permanentemente.
+                              Questa azione non pu&ograve; essere annullata. Il capitolo &quot;{capitolo.titolo}&quot; sar&agrave; eliminato permanentemente.
                             </p>
                             <DialogFooter className="gap-2">
                               <Button variant="outline" onClick={() => setDeleteDialog(null)}>
@@ -512,7 +512,7 @@ export default function ArchivioClient({ user }: { user: User }) {
                         {capitolo.frase_finale && (
                           <div className="pt-4 border-t">
                             <p className="text-right italic text-primary font-medium">
-                              "{capitolo.frase_finale}"
+                              &quot;{capitolo.frase_finale}&quot;
                             </p>
                           </div>
                         )}

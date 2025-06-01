@@ -203,7 +203,7 @@ export default function PercorsiPage() {
               className="w-full border p-2 mb-2 rounded min-h-[120px]"
               value={aiText}
               onChange={e => setAiText(e.target.value)}
-              placeholder="Testo generato dall'AI..."
+              placeholder="Testo generato dall&apos;AI..."
             />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="default" className="" onClick={() => setActiveArchetipo(null)}>Annulla</Button>
@@ -223,4 +223,4 @@ export default function PercorsiPage() {
       )}
     </div>
   );
-} 
+}

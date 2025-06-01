@@ -33,8 +33,8 @@ export default function AuthCodeErrorPage() {
               Errore di Autenticazione
             </h1>
             <p className="text-gray-600 leading-relaxed">
-              Si è verificato un problema durante l'accesso. 
-              Questo può accadere se il link è scaduto o se ci sono stati problemi di connessione.
+              Si &egrave; verificato un problema durante l&apos;accesso. 
+              Questo pu&ograve; accadere se il link &egrave; scaduto o se ci sono stati problemi di connessione.
             </p>
           </motion.div>
 

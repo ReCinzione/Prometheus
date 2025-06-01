@@ -214,7 +214,7 @@ export default function HomePageClient({ user }: HomePageClientProps) {
                   className="text-center max-w-2xl"
                 >
                   <blockquote className="text-lg md:text-xl text-gray-600 italic leading-relaxed">
-                    "{quotes[currentQuote]}"
+                    &quot;{quotes[currentQuote]}&quot;
                   </blockquote>
                 </motion.div>
               </AnimatePresence>

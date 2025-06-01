@@ -334,7 +334,7 @@ export default function ScriviPage() {
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
             <div className="text-6xl mb-4">{selected.icona}</div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">Hai già scritto per questo seme!</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Hai gi&agrave; scritto per questo seme!</h2>
             <p className="text-gray-600 mb-6">Puoi rileggere il tuo capitolo nell'archivio.</p>
             <Button variant="default" size="default" onClick={() => router.push('/archivio')} className="w-full">
               Vai all'Archivio
@@ -575,7 +575,7 @@ export default function ScriviPage() {
                   <div className="mt-4 pt-4 border-t border-green-200">
                     <h4 className="text-sm font-medium text-green-700 mb-2">Frase Conclusiva</h4>
                     <p className="text-base font-medium text-green-800 italic text-center">
-                      "{message.fraseFinale}"
+                      &quot;{message.fraseFinale}&quot;
                     </p>
                   </div>
                 )}
@@ -655,7 +655,7 @@ export default function ScriviPage() {
             className="text-lg font-medium italic"
             style={{ color: selected.sigillo.colore }}
           >
-            "{selected.frase_finale}"
+            &quot;{selected.frase_finale}&quot;
           </p>
         </div>
       </div>

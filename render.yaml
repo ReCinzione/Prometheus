@@ -1,0 +1,19 @@
+services:
+  # Backend service
+  - type: web
+    name: prometheus-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false # Imposta su true se hai configurato questo segreto nella dashboard di Render
+      - key: FRONTEND_URL
+        value: https://your-vercel-app-url.vercel.app # Sostituisci con l'URL del tuo frontend su Vercel
+      - key: PORT
+        value: 8000
+    # Assicurati che semi_data.json sia disponibile nel deployment
+    disk:
+      name: semi-data
+      mountPath: /opt/render/project/src/
+      sizeGB: 1

@@ -20,7 +20,9 @@ export async function POST(req: Request) {
       nome,        // opzionale, se vuoi passarla al backend Python
     };
 
-    const response = await fetch('http://localhost:8000/api/chat', {
+    // Usa la variabile d'ambiente o fallback su localhost per lo sviluppo
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    const response = await fetch(`${backendUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,4 +57,4 @@ export async function POST(req: Request) {
     console.error('Errore nella route /api/archetipo-gemini:', error);
     return NextResponse.json({ error: 'Errore interno del server' }, { status: 500 });
   }
-} 
+}

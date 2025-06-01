@@ -81,9 +81,14 @@ class ImageGenerationRequest(BaseModel):
 # Inizializzazione dell'applicazione FastAPI
 app = FastAPI()
 
+# Configurazione CORS più sicura per la produzione
+# In produzione, usa la variabile d'ambiente FRONTEND_URL o consenti tutti gli origini in sviluppo
+frontend_url = os.getenv("FRONTEND_URL", "*")
+allow_origins = [frontend_url] if frontend_url != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

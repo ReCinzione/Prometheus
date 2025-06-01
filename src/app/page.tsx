@@ -11,11 +11,16 @@ export default async function HomePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
-          return cookieStore.get(name)?.value;
+        async get(name) {
+          const cookie = await cookieStore.get(name);
+          return cookie?.value;
         },
-        set() {},
-        remove() {},
+        async set(name, value, options) {
+          await cookieStore.set({ name, value, ...options });
+        },
+        async remove(name, options) {
+          await cookieStore.set({ name, value: '', ...options });
+        },
       },
     }
   );

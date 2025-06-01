@@ -83,7 +83,7 @@ export default function ScriviPage() {
       const path = `sem_${paddedNumber}`;
 
       try {
-        const mod = await import('../../../lib/raccontiIntro');
+        const mod = await import('../../../lib/racconti_storie');
         const racconto = mod[path];
         if (racconto) {
           setRaccontoIntro(racconto);

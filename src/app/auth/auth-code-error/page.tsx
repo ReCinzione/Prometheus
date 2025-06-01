@@ -49,7 +49,7 @@ export default function AuthCodeErrorPage() {
               className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-medium py-3 rounded-xl transition-all duration-200 hover:scale-[1.02]"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              Riprova l'Accesso
+              Riprova l&apos;Accesso
             </Button>
             
             <Button 

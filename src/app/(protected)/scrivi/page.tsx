@@ -88,9 +88,11 @@ export default function ScriviPage() {
       let racconto = null;
       for (const path of possiblePaths) {
         try {
-          const mod = await import(`@/lib/raccontiIntro/${path}.ts`);
-          racconto = mod.racconto || mod.default;
-          break;
+          // Utilizziamo il barrel file raccontiIntro.ts invece di importare direttamente dalla cartella
+          const mod = await import('@/lib/raccontiIntro');
+          // Accediamo al modulo specifico dal barrel file
+          racconto = mod[path] || null;
+          if (racconto) break;
         } catch (err) {
           // Continua con il prossimo path
           continue;
@@ -335,9 +337,9 @@ export default function ScriviPage() {
           <CardContent className="p-8 text-center">
             <div className="text-6xl mb-4">{selected.icona}</div>
             <h2 className="text-xl font-semibold text-gray-800 mb-2">Hai gi&agrave; scritto per questo seme!</h2>
-            <p className="text-gray-600 mb-6">Puoi rileggere il tuo capitolo nell'archivio.</p>
+            <p className="text-gray-600 mb-6">Puoi rileggere il tuo capitolo nell&apos;archivio.</p>
             <Button variant="default" size="default" onClick={() => router.push('/archivio')} className="w-full">
-              Vai all'Archivio
+              Vai all&apos;Archivio
             </Button>
           </CardContent>
         </Card>

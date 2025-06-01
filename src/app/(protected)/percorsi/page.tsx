@@ -207,7 +207,7 @@ export default function PercorsiPage() {
             />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="default" className="" onClick={() => setActiveArchetipo(null)}>Annulla</Button>
-              <Button variant="default" size="default" className="" onClick={handleSave} disabled={!aiText.trim()}>Aggiungi all'Archivio</Button>
+              <Button variant="default" size="default" className="" onClick={handleSave} disabled={!aiText.trim()}>Aggiungi all&apos;Archivio</Button>
             </div>
           </div>
         </div>

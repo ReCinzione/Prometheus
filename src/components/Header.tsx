@@ -18,7 +18,18 @@ export default function Header() {
       setSession(data?.session || null);
     };
     fetchSession();
-  }, [supabase.auth]);
+
+    // Sottoscrizione ai cambiamenti di autenticazione
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   if (!session) return null;
 

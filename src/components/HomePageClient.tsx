@@ -286,7 +286,7 @@ export default function HomePageClient({ user }: HomePageClientProps) {
             </div>
             <p className="text-gray-500 text-sm max-w-md mx-auto leading-relaxed">
               Ogni scelta che fai qui plasma il tuo percorso di crescita. 
-              Non c'è fretta, solo presenza.
+              Non c&apos;è fretta, solo presenza.
             </p>
           </motion.div>
 

@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
           cookieStore.set({ name, value, ...options });
         },
         remove(name, options) {
-          cookieStore.delete(name, options);
+          cookieStore.set({ name, value: '', ...options });
         },
       },
     }

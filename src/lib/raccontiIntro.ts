@@ -1,31 +1,31 @@
-// This file re-exports all the content from the RaccontiIntro folder
+// This file re-exports all the content from the raccontiIntro folder
 // to fix the case sensitivity issue in imports
 
 // Import all the racconto modules
-import { racconto as racconto01 } from './RaccontiIntro/sem_01';
-import { racconto as racconto02 } from './RaccontiIntro/sem_02';
-import { racconto as racconto03 } from './RaccontiIntro/sem_03';
-import { racconto as racconto04 } from './RaccontiIntro/sem_04';
-import { racconto as racconto05 } from './RaccontiIntro/sem_05';
-import { racconto as racconto06 } from './RaccontiIntro/sem_06';
-import { racconto as racconto07 } from './RaccontiIntro/sem_07';
-import { racconto as racconto08 } from './RaccontiIntro/sem_08';
-import { racconto as racconto09 } from './RaccontiIntro/sem_09';
-import { racconto as racconto10 } from './RaccontiIntro/sem_010';
-import { racconto as racconto11 } from './RaccontiIntro/sem_011';
-import { racconto as racconto12 } from './RaccontiIntro/sem_012';
-import { racconto as racconto13 } from './RaccontiIntro/sem_013';
-import { racconto as racconto14 } from './RaccontiIntro/sem_014';
-import { racconto as racconto15 } from './RaccontiIntro/sem_015';
-import { racconto as racconto16 } from './RaccontiIntro/sem_016';
-import { racconto as racconto17 } from './RaccontiIntro/sem_017';
-import { racconto as racconto18 } from './RaccontiIntro/sem_018';
-import { racconto as racconto19 } from './RaccontiIntro/sem_019';
-import { racconto as racconto20 } from './RaccontiIntro/sem_020';
-import { racconto as racconto21 } from './RaccontiIntro/sem_021';
-import { racconto as racconto22 } from './RaccontiIntro/sem_022';
-import { racconto as racconto23 } from './RaccontiIntro/sem_023';
-import { racconto as racconto24 } from './RaccontiIntro/sem_024';
+import { racconto as racconto01 } from './raccontiIntro/sem_01';
+import { racconto as racconto02 } from './raccontiIntro/sem_02';
+import { racconto as racconto03 } from './raccontiIntro/sem_03';
+import { racconto as racconto04 } from './raccontiIntro/sem_04';
+import { racconto as racconto05 } from './raccontiIntro/sem_05';
+import { racconto as racconto06 } from './raccontiIntro/sem_06';
+import { racconto as racconto07 } from './raccontiIntro/sem_07';
+import { racconto as racconto08 } from './raccontiIntro/sem_08';
+import { racconto as racconto09 } from './raccontiIntro/sem_09';
+import { racconto as racconto10 } from './raccontiIntro/sem_010';
+import { racconto as racconto11 } from './raccontiIntro/sem_011';
+import { racconto as racconto12 } from './raccontiIntro/sem_012';
+import { racconto as racconto13 } from './raccontiIntro/sem_013';
+import { racconto as racconto14 } from './raccontiIntro/sem_014';
+import { racconto as racconto15 } from './raccontiIntro/sem_015';
+import { racconto as racconto16 } from './raccontiIntro/sem_016';
+import { racconto as racconto17 } from './raccontiIntro/sem_017';
+import { racconto as racconto18 } from './raccontiIntro/sem_018';
+import { racconto as racconto19 } from './raccontiIntro/sem_019';
+import { racconto as racconto20 } from './raccontiIntro/sem_020';
+import { racconto as racconto21 } from './raccontiIntro/sem_021';
+import { racconto as racconto22 } from './raccontiIntro/sem_022';
+import { racconto as racconto23 } from './raccontiIntro/sem_023';
+import { racconto as racconto24 } from './raccontiIntro/sem_024';
 
 // Export individual racconti
 export const sem_01 = racconto01;

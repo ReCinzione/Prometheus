@@ -81,7 +81,14 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     <div className="max-w-4xl mx-auto py-10 px-4 space-y-6">
       <h1 className="text-3xl font-bold text-center mb-6">📖 Il Libro Vivente</h1>
       <div className="flex justify-center">
-        <Button onClick={handleStampa}>📄 Esporta in PDF</Button>
+        <Button 
+          onClick={handleStampa}
+          variant="default"
+          size="default"
+          className="bg-purple-500 hover:bg-purple-600"
+        >
+          📄 Esporta in PDF
+        </Button>
       </div>
       <LibroVivente ref={componenteLibro} user={user} />
     </div>

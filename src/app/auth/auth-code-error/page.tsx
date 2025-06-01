@@ -44,16 +44,19 @@ export default function AuthCodeErrorPage() {
             transition={{ delay: 0.4 }}
             className="space-y-3"
           >
-            <Button 
+            <Button
               onClick={() => router.push('/login')}
               className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-medium py-3 rounded-xl transition-all duration-200 hover:scale-[1.02]"
+              variant="default"
+              size="default"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              Riprova l&apos;Accesso
+              Torna al Login
             </Button>
             
             <Button 
               variant="outline"
+              size="default"
               onClick={() => router.push('/')}
               className="w-full border-gray-300 hover:bg-gray-50 font-medium py-3 rounded-xl transition-all duration-200"
             >

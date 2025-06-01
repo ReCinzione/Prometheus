@@ -315,7 +315,12 @@ export default function ScriviPage() {
             <div className="text-6xl mb-4">🌱</div>
             <h2 className="text-xl font-semibold text-gray-800 mb-2">Nessun Seme Selezionato</h2>
             <p className="text-gray-600 mb-6">Scegli un seme dal mandala per iniziare il tuo viaggio.</p>
-            <Button onClick={() => router.push('/mandala')} className="w-full">
+            <Button 
+              onClick={() => router.push('/mandala')} 
+              className="w-full"
+              variant="default"
+              size="default"
+            >
               Vai al Mandala
             </Button>
           </CardContent>
@@ -462,6 +467,7 @@ export default function ScriviPage() {
               <Button
                 onClick={handleToggleRacconto}
                 variant="outline"
+                size="default"
                 className="bg-white/70 hover:bg-white border-indigo-300 text-indigo-700 hover:text-indigo-800"
                 disabled={raccontoLoading}
               >

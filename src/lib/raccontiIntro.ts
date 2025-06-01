@@ -27,7 +27,7 @@ import { racconto as racconto22 } from './RaccontiIntro/sem_022';
 import { racconto as racconto23 } from './RaccontiIntro/sem_023';
 import { racconto as racconto24 } from './RaccontiIntro/sem_024';
 
-// Export with the correct keys matching the file names
+// Export individual racconti
 export const sem_01 = racconto01;
 export const sem_02 = racconto02;
 export const sem_03 = racconto03;
@@ -52,3 +52,31 @@ export const sem_021 = racconto21;
 export const sem_022 = racconto22;
 export const sem_023 = racconto23;
 export const sem_024 = racconto24;
+
+// Also export as a single object for convenience
+export const raccontiIntro = {
+  sem_01,
+  sem_02,
+  sem_03,
+  sem_04,
+  sem_05,
+  sem_06,
+  sem_07,
+  sem_08,
+  sem_09,
+  sem_010,
+  sem_011,
+  sem_012,
+  sem_013,
+  sem_014,
+  sem_015,
+  sem_016,
+  sem_017,
+  sem_018,
+  sem_019,
+  sem_020,
+  sem_021,
+  sem_022,
+  sem_023,
+  sem_024,
+};

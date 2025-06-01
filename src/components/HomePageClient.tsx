@@ -288,6 +288,9 @@ export default function HomePageClient({ user }: HomePageClientProps) {
               Ogni scelta che fai qui plasma il tuo percorso di crescita. 
               Non c&apos;è fretta, solo presenza.
             </p>
+            <p className="text-sm text-gray-500">
+              Se il problema persiste, prova a cancellare i cookie del browser o contatta il supporto.
+            </p>
           </motion.div>
 
         </div>

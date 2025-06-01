@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createBrowserClient } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
@@ -70,12 +70,7 @@ export default function ArchivioClient({ user }: { user: User }) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  useEffect(() => {
-    if (!user) return;
-    loadCapitoli(user.id);
-  }, [user]);
-
-  const loadCapitoli = async (userId: string) => {
+  const loadCapitoli = useCallback(async (userId: string) => {
     try {
       setLoading(true);
       const data = await fetchCapitoli(supabase, userId);
@@ -86,7 +81,12 @@ export default function ArchivioClient({ user }: { user: User }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadCapitoli(user.id);
+  }, [user, loadCapitoli]);
 
   const toggleCardExpansion = (capitoloId: number) => {
     const newExpanded = new Set(expandedCards);
@@ -270,7 +270,7 @@ export default function ArchivioClient({ user }: { user: User }) {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">{error}</p>
-            <Button variant="default" size="default" onClick={() => window.location.reload()}>
+            <Button variant="default" size="default" className="" onClick={() => window.location.reload()}>
               Ricarica Pagina
             </Button>
           </CardContent>
@@ -297,7 +297,7 @@ export default function ArchivioClient({ user }: { user: User }) {
             className="w-full"
           />
         </div>
-        <Button onClick={handleAddTestCapitolo} className="gap-2">
+        <Button onClick={handleAddTestCapitolo} className="gap-2" variant="default" size="default">
           <Plus className="h-4 w-4" />
           Nuovo Seme
         </Button>
@@ -401,7 +401,7 @@ export default function ArchivioClient({ user }: { user: User }) {
 
                     {!isEditing && (
                       <div className="flex items-center gap-1 ml-4">
-                        <Button size="sm" variant="outline" onClick={() => handleStartEdit(capitolo)}>
+                        <Button size="sm" variant="outline" className="" onClick={() => handleStartEdit(capitolo)}>
                           <Edit3 className="h-4 w-4" />
                         </Button>
 
@@ -422,7 +422,7 @@ export default function ArchivioClient({ user }: { user: User }) {
 
                         <Dialog open={deleteDialog === capitolo.id} onOpenChange={(open) => !open && setDeleteDialog(null)}>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="destructive" onClick={() => setDeleteDialog(capitolo.id)}>
+                            <Button size="sm" variant="destructive" className="" onClick={() => setDeleteDialog(capitolo.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
@@ -434,10 +434,10 @@ export default function ArchivioClient({ user }: { user: User }) {
                               Questa azione non pu&ograve; essere annullata. Il capitolo &quot;{capitolo.titolo}&quot; sar&agrave; eliminato permanentemente.
                             </p>
                             <DialogFooter className="gap-2">
-                              <Button variant="outline" onClick={() => setDeleteDialog(null)}>
+                              <Button variant="outline" size="default" className="" onClick={() => setDeleteDialog(null)}>
                                 Annulla
                               </Button>
-                              <Button variant="destructive" onClick={() => handleDelete(capitolo.id)}>
+                              <Button variant="destructive" size="default" className="" onClick={() => handleDelete(capitolo.id)}>
                                 Elimina
                               </Button>
                             </DialogFooter>
@@ -448,10 +448,10 @@ export default function ArchivioClient({ user }: { user: User }) {
 
                     {isEditing && (
                       <div className="flex gap-1 ml-4">
-                        <Button size="sm" variant="default" onClick={handleSaveEdit}>
+                        <Button size="sm" variant="default" className="" onClick={handleSaveEdit}>
                           <Save className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                        <Button size="sm" variant="outline" className="" onClick={handleCancelEdit}>
                           <X className="h-4 w-4" />
                         </Button>
                       </div>

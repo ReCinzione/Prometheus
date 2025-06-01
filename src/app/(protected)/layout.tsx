@@ -26,7 +26,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
       setLoading(false);
     };
     getSession();
-  }, [router]);
+  }, [router, supabase.auth]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Caricamento...</div>;

@@ -27,7 +27,7 @@ export default function PercorsiPage() {
       setUserId(user?.id || null);
     };
     getUser();
-  }, [supabase]);
+  }, [supabase, revealed]);
 
   useEffect(() => {
     if (!userId) return;

@@ -77,29 +77,24 @@ export default function ScriviPage() {
     
     setRaccontoLoading(true);
     try {
-      // Prova diversi formati di naming per essere sicuri
-      const possiblePaths = [
-        `sem_${semeId.padStart(2, '0')}`, // sem_01, sem_02, etc.
-        `seme_${semeId}`, // seme_1, seme_2, etc.
-        semeId, // il valore così com'è
-        `seme${semeId}` // seme1, seme2, etc.
-      ];
+      // Rimuovi il prefisso 'sem_' se presente e aggiungi lo zero iniziale se necessario
+      const semeNumber = semeId.replace('sem_', '');
+      const paddedNumber = semeNumber.padStart(3, '0');
+      const path = `sem_${paddedNumber}`;
 
-      let racconto = null;
-      for (const path of possiblePaths) {
-        try {
-          // Utilizziamo il barrel file raccontiIntro.ts invece di importare direttamente dalla cartella
-          const mod = await import('@/lib/raccontiIntro');
-          // Accediamo al modulo specifico dal barrel file
-          racconto = mod[path] || null;
-          if (racconto) break;
-        } catch (err) {
-          // Continua con il prossimo path
-          continue;
+      try {
+        const mod = await import('@/lib/raccontiIntro');
+        const racconto = mod[path];
+        if (racconto) {
+          setRaccontoIntro(racconto);
+        } else {
+          console.error(`Racconto non trovato per il path: ${path}`);
+          setRaccontoIntro(null);
         }
+      } catch (err) {
+        console.error('Errore importazione modulo:', err);
+        setRaccontoIntro(null);
       }
-      
-      setRaccontoIntro(racconto);
     } catch (error) {
       console.error('Errore caricamento racconto:', error);
       setRaccontoIntro(null);

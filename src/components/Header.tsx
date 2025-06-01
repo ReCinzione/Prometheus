@@ -18,7 +18,7 @@ export default function Header() {
       setSession(data?.session || null);
     };
     fetchSession();
-  }, []);
+  }, [supabase.auth]);
 
   if (!session) return null;
 

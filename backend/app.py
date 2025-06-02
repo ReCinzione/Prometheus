@@ -269,18 +269,18 @@ def chat_endpoint(req: ChatRequest):
         **FORMATO DI RISPOSTA OBBLIGATORIO:** Devi rispondere UNICAMENTE con un oggetto JSON valido e completo, senza alcun testo aggiuntivo prima o dopo.
 
         JSON:
-        {{
+        {{{{
             "output": "",
             "eco": ["la singola frase poetica di eco"],
             "frase_finale": "{current_seme_info.get('frase_finale', 'La verità si manifesta nella scrittura libera.')}",
-            "sigillo": {{
+            "sigillo": {{{{
                 "simbolo_dominante": "emoji",
                 "immagine": "descrizione immagine metaforica",
                 "colore": "#XXXXXX",
                 "forma": "forma del sigillo",
                 "codice_sigillo": "CODICE-ESEMPIO"
-            }}
-        }}
+            }}}}
+        }}}}
         """
         payload = {
             "contents": [
@@ -305,7 +305,7 @@ def chat_endpoint(req: ChatRequest):
             # Se l'AI non genera un sigillo valido, usiamo quello dal SEMI_DATA
             final_sigillo_data = parsed.get("sigillo")
             if not final_sigillo_data and current_seme_info and "sigillo" in current_seme_info:
-                 final_sigillo_data = SigilloData(**current_seme_info["sigillo"])
+                    final_sigillo_data = SigilloData(**current_seme_info["sigillo"])
 
             return ChatResponse(
                 output="",
@@ -347,20 +347,20 @@ Tema: {req.seme_id} - {current_seme_info['nome']}
 Input dell'utente: {req.user_input}
 
 **Processo:**
-1.  Ascolta attentamente l'Input dell'utente e cogli il suo nucleo emotivo, le sue tensioni interiori e gli **elementi specifici della sua narrazione**.
-2.  Genera una o due **immagini metaforiche e profondamente simboliche**, contenute in frasi fluide, per il campo "output". Queste immagini devono essere evocative e **risuonare direttamente con gli elementi chiave dell'Input dell'utente**, non essere descrizioni generiche o astratte. Ad esempio, se l'utente parla di amicizia e riunione, l'immagine potrebbe evocare un legame riannodato o un cammino condiviso che riprende. Se parla di un luogo specifico, integrare quel luogo nella metafora.
-3.  Per il campo "eco", genera **un breve e conciso 'eco'** basato su una parola chiave o un concetto emotivo chiave estratto direttamente dall'Input dell'utente o dall'essenza della sua storia. Deve essere una singola frase.
-4.  Il linguaggio deve essere poetico ma accessibile, non eccessivamente criptico.
-5.  La "frase_finale" deve essere una **domanda aperta e profonda** che emerga direttamente dalle immagini create e inviti l'utente all'auto-riflessione sul significato personale. Deve terminare con un punto interrogativo.
+1. Ascolta attentamente l'Input dell'utente e cogli il suo nucleo emotivo, le sue tensioni interiori e gli **elementi specifici della sua narrazione**.
+2. Genera una o due **immagini metaforiche e profondamente simboliche**, contenute in frasi fluide, per il campo "output". Queste immagini devono essere evocative e **risuonare direttamente con gli elementi chiave dell'Input dell'utente**, non essere descrizioni generiche o astratte. Ad esempio, se l'utente parla di amicizia e riunione, l'immagine potrebbe evocare un legame riannodato o un cammino condiviso che riprende. Se parla di un luogo specifico, integrare quel luogo nella metafora.
+3. Per il campo "eco", genera **un breve e conciso 'eco'** basato su una parola chiave o un concetto emotivo chiave estratto direttamente dall'Input dell'utente o dall'essenza della sua storia. Deve essere una singola frase.
+4. Il linguaggio deve essere poetico ma accessibile, non eccessivamente criptico.
+5. La "frase_finale" deve essere una **domanda aperta e profonda** che emerga direttamente dalle immagini create e inviti l'utente all'auto-riflessione sul significato personale. Deve terminare con un punto interrogativo.
 
 **FORMATO DI RISPOSTA OBBLIGATORIO: Devi rispondere UNICAMENTE con un oggetto JSON valido e completo, senza alcun testo aggiuntivo prima o dopo. Assicurati che tutte le stringhe siano racchiuse tra doppi apici e le liste siano correttamente formattate.**
 
 JSON:
-{{
+{{{{
     "output": ["una o due immagini simboliche ancorate all'input dell'utente, come un'eco che riflette la sua storia specifica e i suoi elementi chiave. Se è una sola frase, può essere direttamente la stringa."],
     "eco": ["un breve e conciso 'eco' basato su una parola chiave o un concetto emotivo chiave dall'input dell'utente, in una singola frase."],
     "frase_finale": "domanda specifica che stimola l'auto-riflessione e termina con un punto interrogativo?"
-}}
+}}}}
 """
     elif is_last_interaction_for_normal_seme: # Ultima interazione per un seme normale
         prompt = f"""
@@ -373,33 +373,33 @@ Risposta Utente (attuale): {req.user_input}
 Contesto simbolico precedente (risposta di Prometheus fase 1): {prometheus_first_output_content}
 
 **Processo per la "Risposta Simbolica Completa":**
-1.  **Apertura:** Inizia con una frase suggestiva che riconosca il progresso o la trasformazione in atto, legandosi al tema del seme.
-2.  **Tessitura Simbolica (10-12 frasi):**
+1. **Apertura:** Inizia con una frase suggestiva che riconosca il progresso o la trasformazione in atto, legandosi al tema del seme.
+2. **Tessitura Simbolica (10-12 frasi):**
     * Crea un testo poetico che sia una profonda metafora del percorso dell'utente.
     * **Tono:** Evita descrizioni didascaliche. Invece di affermare, suggerisci con immagini.
     * **Integrazione:** Integra fluentemente gli elementi chiave emersi dalle interazioni: la **scelta originaria**, il **rimpianto iniziale**, la **scoperta inaspettata di competenze/interessi**, e il **senso di felicità/adeguatezza attuale**.
     * Mostra come il "gesto non fatto" o il "sentiero deviato" abbia, paradossalmente, condotto a un arricchimento interiore e fornito strumenti per il futuro.
     * Concentrati sulla trasformazione, sulla rivelazione, sulla ricomposizione di ciò che sembrava rotto.
     * Lascia spazio al non detto, alla suggestione, permettendo all'utente di riempire gli spazi con la propria interpretazione.
-3.  **Eco Simbolico finale (singola frase):** Genera una frase molto breve e densa che sia l'apice simbolico di tutto il percorso. Deve essere profonda e riassumere l'essenza della rivelazione. **Esempio:** "Il sentiero che sembrava deviare, ora si rivela il filo nascosto della tua tessitura interiore."
-4.  **Frase Conclusiva (poetica):** Chiudi il cerchio con una frase finale che sia essa stessa un'immagine potente e che suggelli il significato del viaggio fin qui, guardando avanti con saggezza. Deve essere **altamente evocativa e simbolica**, non una semplice affermazione. **Esempio:** "Ogni deviazione ha inciso una runa sul tuo cammino: ora sai leggerne il senso." NON deve terminare con un punto interrogativo.
-5.  **Generazione Sigillo:** Genera i dati per il "sigillo" finale per questo seme, che verrà incluso nella risposta.
+3. **Eco Simbolico finale (singola frase):** Genera una frase molto breve e densa che sia l'apice simbolico di tutto il percorso. Deve essere profonda e riassumere l'essenza della rivelazione. **Esempio:** "Il sentiero che sembrava deviare, ora si rivela il filo nascosto della tua tessitura interiore."
+4. **Frase Conclusiva (poetica):** Chiudi il cerchio con una frase finale che sia essa stessa un'immagine potente e che suggelli il significato del viaggio fin qui, guardando avanti con saggezza. Deve essere **altamente evocativa e simbolica**, non una semplice affermazione. **Esempio:** "Ogni deviazione ha inciso una runa sul tuo cammino: ora sai leggerne il senso." NON deve terminare con un punto interrogativo.
+5. **Generazione Sigillo:** Genera i dati per il "sigillo" finale per questo seme, che verrà incluso nella risposta.
 
-**FORMATO DI RISPOSTA OBBLIGATORIO:** Devi rispondere UNICAMENTE con un oggetto JSON valido e completo, senza alcun testo aggiuntivo prima o dopo. Assicurati che tutte le stringhe siano racchiuse tra doppi apici e le liste siano correttamente formattate.
+**FORMATO DI RISPOSTA OBBLIGATORIO: Devi rispondere UNICAMENTE con un oggetto JSON valido e completo, senza alcun testo aggiuntivo prima o dopo. Assicurati che tutte le stringhe siano racchiuse tra doppi apici e le liste siano correttamente formattate.**
 
 JSON:
-{{
+{{{{
     "output": "testo poetico simbolo del percorso dell'utente (singola stringa fluida, 10-12 frasi, evocativa, non didascalica)",
     "eco": ["eco simbolico finale (singola frase densa di significato)"],
     "frase_finale": "frase conclusiva altamente evocativa e simbolica, che chiude il cerchio (singola stringa)",
-    "sigillo": {{
+    "sigillo": {{{{
         "simbolo_dominante": "emoji",
         "immagine": "descrizione immagine metaforica",
         "colore": "#XXXXXX",
         "forma": "forma del sigillo",
         "codice_sigillo": "CODICE-ESEMPIO"
-    }}
-}}
+    }}}}
+}}}}
 """
     else: # Seconda (o intermedia se avessi più di 2 interazioni totali) interazione per un seme normale
         prompt = f"""
@@ -411,18 +411,18 @@ Domanda precedente di Prometheus: {req.last_assistant_question if req.last_assis
 Nuova riflessione dell'utente: {req.user_input}
 
 **Processo:**
-1.  Genera una risposta "output" che sia un'immagine metaforica o una breve riflessione poetica, che riprenda il tema della nuova riflessione dell'utente e la connetta al contesto del seme. Non dare risposte dirette o soluzioni. Mantieni il mistero.
-2.  Genera un "eco" breve e conciso, una singola frase.
-3.  La "frase_finale" deve essere una nuova domanda aperta e profonda che stimoli l'utente a un'ulteriore riflessione, mantenendo il dialogo con il seme. Deve terminare con un punto interrogativo.
+1. Genera una risposta "output" che sia un'immagine metaforica o una breve riflessione poetica, che riprenda il tema della nuova riflessione dell'utente e la connetta al contesto del seme. Non dare risposte dirette o soluzioni. Mantieni il mistero.
+2. Genera un "eco" breve e conciso, una singola frase.
+3. La "frase_finale" deve essere una nuova domanda aperta e profonda che stimoli l'utente a un'ulteriore riflessione, mantenendo il dialogo con il seme. Deve terminare con un punto interrogativo.
 
 **FORMATO DI RISPOSTA OBBLIGATORIO: Devi rispondere UNICAMENTE con un oggetto JSON valido e completo, senza alcun testo aggiuntivo prima o dopo. Assicurati che tutte le stringhe siano racchiuse tra doppi apici e le liste siano correttamente formattate.**
 
 JSON:
-{{
+{{{{
     "output": "immagine metaforica o riflessione poetica (singola stringa)",
     "eco": ["eco breve e conciso"],
     "frase_finale": "nuova domanda stimolante che termina con un punto interrogativo?"
-}}
+}}}}
 """
     
     # Preparazione del payload per Gemini

@@ -338,6 +338,10 @@ def chat_endpoint(req: ChatRequest):
         else:
             prometheus_first_output_content = first_assistant_msg_content
 
+    # Definisci le stringhe di fallback al di fuori delle espressioni f-string
+    fallback_frase_finale_initial = 'Quale voce antica sussurra nel silenzio tra un passo e l\'altro?'
+    fallback_frase_finale_intermediate = 'La tua domanda precedente non è stata fornita.'
+
     # Determina il prompt da inviare a Gemini
     if req.interaction_number == 0: # Prima interazione per un seme normale
         prompt = f"""
@@ -368,7 +372,7 @@ JSON:
 
 Tema: {req.seme_id} - {current_seme_info['nome']}
 Prima Riflessione Utente (originale): {previous_user_input}
-Domanda di Prometheus (dopo la prima riflessione): {req.last_assistant_question if req.last_assistant_question else current_seme_info.get('frase_finale', 'Quale voce antica sussurra nel silenzio tra un passo e l\'altro?')}
+Domanda di Prometheus (dopo la prima riflessione): {req.last_assistant_question if req.last_assistant_question else fallback_frase_finale_initial}
 Risposta Utente (attuale): {req.user_input}
 Contesto simbolico precedente (risposta di Prometheus fase 1): {prometheus_first_output_content}
 
@@ -407,7 +411,7 @@ JSON:
 
 Tema: {req.seme_id} - {current_seme_info['nome']}
 Contesto precedente (ultima interazione di Prometheus): {prometheus_first_output_content}
-Domanda precedente di Prometheus: {req.last_assistant_question if req.last_assistant_question else current_seme_info.get('frase_finale', 'La tua domanda precedente non è stata fornita.')}
+Domanda precedente di Prometheus: {req.last_assistant_question if req.last_assistant_question else fallback_frase_finale_intermediate}
 Nuova riflessione dell'utente: {req.user_input}
 
 **Processo:**

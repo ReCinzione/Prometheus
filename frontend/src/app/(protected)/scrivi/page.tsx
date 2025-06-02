@@ -140,7 +140,7 @@ export default function ScriviPage() {
     try {
       if (isSeme99) {
         // Invio diretto, logica eco
-        const response = await fetch('http://localhost:8000/api/chat', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -183,7 +183,7 @@ export default function ScriviPage() {
         ? assistantMessages[assistantMessages.length - 1].fraseFinale 
         : null;
 
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

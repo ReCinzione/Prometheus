@@ -84,7 +84,7 @@ app = FastAPI()
 # Configurazione CORS più sicura per la produzione
 # In produzione, usa la variabile d'ambiente FRONTEND_URL o consenti tutti gli origini in sviluppo
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-allow_origins = [frontend_url] if frontend_url != "*" else ["http://localhost:3000"]
+allow_origins = [frontend_url] if frontend_url != "*" else ["*"]
 
 app.add_middleware(
     CORSMiddleware,

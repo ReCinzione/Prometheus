@@ -1,6 +1,6 @@
 // src/lib/semi.ts
 
-import semiData from '../../semi_data.json';
+import semiData from './semi_data.json';
 
 export type Seme = {
   id: string;
@@ -19,12 +19,12 @@ export type Seme = {
 };
 
 // Importa i dati dal file JSON condiviso
-export const semi: Seme[] = semiData as Seme[];
+export const semi: Seme[] = semiData;
 
 // Funzione helper per trovare un seme per ID
-export const findSemeById = (id: string): Seme | undefined => {
+export function getSemeById(id: string): Seme | undefined {
   return semi.find(seme => seme.id === id);
-};
+}
 
 // Funzione helper per ottenere tutti i semi eccetto sem_99
 export const getNormalSemi = (): Seme[] => {
@@ -35,3 +35,8 @@ export const getNormalSemi = (): Seme[] => {
 export const getEcoUniversale = (): Seme | undefined => {
   return semi.find(seme => seme.id === 'sem_99');
 };
+
+export function getRandomSeme(): Seme {
+  const randomIndex = Math.floor(Math.random() * semi.length);
+  return semi[randomIndex];
+}

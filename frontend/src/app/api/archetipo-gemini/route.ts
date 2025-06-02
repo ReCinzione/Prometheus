@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     };
 
     // Usa la variabile d'ambiente o fallback su localhost per lo sviluppo
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    const backendUrl = 'https://prometheus-2p62.onrender.com';
     const response = await fetch(`${backendUrl}/api/chat`, {
       method: 'POST',
       headers: {

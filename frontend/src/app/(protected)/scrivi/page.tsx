@@ -249,7 +249,7 @@ export default function ScriviPage() {
         eco: data.eco,
         fraseFinale: data.frase_finale,
         timestamp: new Date(),
-        fase: isFirstInteraction ? 'prima' : 'seconda'
+        fase: isFirstNormalInteraction ? 'prima' : 'seconda'
       };
 
       setMessages(prev => [...prev, assistantResponse]);

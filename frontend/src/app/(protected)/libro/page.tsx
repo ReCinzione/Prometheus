@@ -13,7 +13,7 @@ import LibroVivente, { Capitolo as CapitoloType } from './LibroVivente'; // Impo
 // Ensure react-beautiful-dnd types are correctly installed if issues arise:
 // npm install --save-dev @types/react-beautiful-dnd
 import { DragDropContext, Droppable, Draggable, DropResult, ResponderProvided } from 'react-beautiful-dnd';
-import { GripVertical, Edit, Trash2, PlusCircle, Save, Share2, Loader2 as ActionLoader } from 'lucide-react'; // Added Share2, Loader2 as ActionLoader
+import { GripVertical, Edit, Trash2, PlusCircle, Save, Share2, Loader2 as ActionLoader, Loader2 } from 'lucide-react'; // Added Loader2
 import {
   Dialog,
   DialogContent,

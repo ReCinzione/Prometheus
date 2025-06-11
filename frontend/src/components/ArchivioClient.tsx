@@ -470,8 +470,3 @@ export default function ArchivioClient({ user }: { user: User }) {
     </div>
   );
 }
-        )}
-      </div>
-    </div>
-  );
-}

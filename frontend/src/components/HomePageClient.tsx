@@ -303,6 +303,7 @@ export default function HomePageClient({ user }: HomePageClientProps) {
             >
               <Button
                 variant="outline"
+                size="default" // Added this line
                 onClick={() => setShowManualTutorial(true)}
                 className="mt-6 group"
               >

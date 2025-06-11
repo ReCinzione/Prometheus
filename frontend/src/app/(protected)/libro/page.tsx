@@ -379,7 +379,8 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                 <Button
                   onClick={() => setShowCoverUpload(!showCoverUpload)}
                   variant="outline"
-                  size="default" // Added for consistency, though not explicitly requested for this one
+                  size="default"
+                  className="" // Added className
                 >
                   <ImageIcon className="mr-2 h-4 w-4" />
                   {showCoverUpload ? 'Annulla Modifica Copertina' : 'Modifica Copertina'}
@@ -419,7 +420,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
             <h2 className="text-2xl font-semibold">Capitoli del Libro</h2>
             <div className="flex items-center gap-2">
               {isSavingOrder && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-              <Button variant="outline" size="sm" onClick={() => alert("Logica 'Nuovo Capitolo Diretto' da implementare")}>
+              <Button variant="outline" size="sm" className="" onClick={() => alert("Logica 'Nuovo Capitolo Diretto' da implementare")}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Nuovo Capitolo Diretto
               </Button>
             </div>
@@ -455,7 +456,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                               </Badge>
                             </div>
                             <div className="flex items-center space-x-1">
-                              <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal(chapter)} disabled={isProcessingAction} title="Modifica">
+                              <Button variant="ghost" size="icon" className="" onClick={() => handleOpenEditModal(chapter)} disabled={isProcessingAction} title="Modifica">
                                 <Edit className="h-4 w-4" />
                               </Button>
 
@@ -466,6 +467,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                                   <Button
                                     variant="ghost"
                                     size="icon"
+                                    className=""
                                     onClick={() => handleShareChapter(chapter)}
                                     disabled={isProcessingAction}
                                     title="Condividi questo capitolo"
@@ -476,7 +478,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                                 )
                               )}
 
-                              <Button variant="ghost" size="icon" onClick={() => handleOpenDeleteModal(chapter)} disabled={isProcessingAction} title="Elimina (Archivia)">
+                              <Button variant="ghost" size="icon" className="" onClick={() => handleOpenDeleteModal(chapter)} disabled={isProcessingAction} title="Elimina (Archivia)">
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </div>
@@ -525,8 +527,8 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={handleCloseEditModal} disabled={isProcessingAction}>Annulla</Button>
-              <Button onClick={handleSaveChapterChanges} disabled={isProcessingAction}>
+              <Button variant="outline" size="default" className="" onClick={handleCloseEditModal} disabled={isProcessingAction}>Annulla</Button>
+              <Button variant="default" size="default" className="" onClick={handleSaveChapterChanges} disabled={isProcessingAction}>
                 {isProcessingAction ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Salva Modifiche
               </Button>
@@ -547,8 +549,8 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={handleCloseDeleteModal} disabled={isProcessingAction}>Annulla</Button>
-              <Button variant="destructive" onClick={handleConfirmDeleteChapter} disabled={isProcessingAction}>
+              <Button variant="outline" size="default" className="" onClick={handleCloseDeleteModal} disabled={isProcessingAction}>Annulla</Button>
+              <Button variant="destructive" size="default" className="" onClick={handleConfirmDeleteChapter} disabled={isProcessingAction}>
                 {isProcessingAction ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                 Conferma Eliminazione
               </Button>

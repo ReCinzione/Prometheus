@@ -93,7 +93,7 @@ export default function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
         <DialogFooter className="mt-auto pt-4 border-t">
           <div className="flex justify-between w-full">
             {currentStep > 0 ? (
-              <Button variant="outline" onClick={handlePrevious} className="gap-1">
+              <Button variant="outline" size="default" className="gap-1" onClick={handlePrevious}>
                 <ArrowLeft className="h-4 w-4" /> Precedente
               </Button>
             ) : (
@@ -101,18 +101,18 @@ export default function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
             )}
 
             {currentStep < tutorialSteps.length - 1 ? (
-              <Button onClick={handleNext} variant="default" className="gap-1">
+              <Button variant="default" size="default" className="gap-1" onClick={handleNext}>
                 Successivo <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleClose} variant="default" className="bg-green-600 hover:bg-green-700 gap-1">
+              <Button variant="default" size="default" className="bg-green-600 hover:bg-green-700 gap-1" onClick={handleClose}>
                 <CheckCircle className="h-4 w-4" /> Termina Guida
               </Button>
             )}
           </div>
         </DialogFooter>
          <DialogClose asChild className="absolute top-4 right-4">
-            <Button variant="ghost" size="icon" onClick={handleClose}>
+            <Button variant="ghost" size="icon" className="" onClick={handleClose}>
               <X className="h-4 w-4" />
               <span className="sr-only">Chiudi</span>
             </Button>

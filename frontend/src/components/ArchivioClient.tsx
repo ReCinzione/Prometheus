@@ -329,7 +329,7 @@ export default function ArchivioClient({ user }: { user: User }) {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">{error}</p>
-            <Button variant="default" onClick={() => user?.id && loadRawInteractionSessions(user.id)}>
+            <Button variant="default" size="default" className="" onClick={() => user?.id && loadRawInteractionSessions(user.id)}>
               Riprova Caricamento
             </Button>
           </CardContent>

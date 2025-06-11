@@ -120,7 +120,7 @@ export default function SharedChapterDetailPage() {
         <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-destructive mb-2">Errore nel Caricamento</h2>
         <p className="text-muted-foreground mb-4">{error || "Dettagli del capitolo non disponibili."}</p>
-        <Button onClick={() => router.push('/mondi-paralleli')} variant="outline" className="gap-2">
+        <Button onClick={() => router.push('/mondi-paralleli')} variant="outline" size="default" className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Torna a Mondi Paralleli
         </Button>
       </div>
@@ -129,7 +129,7 @@ export default function SharedChapterDetailPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-3xl">
-      <Button onClick={() => router.back()} variant="outline" className="mb-6 gap-2">
+      <Button onClick={() => router.back()} variant="outline" size="default" className="mb-6 gap-2">
         <ArrowLeft className="h-4 w-4" /> Torna Indietro
       </Button>
 
@@ -160,7 +160,7 @@ export default function SharedChapterDetailPage() {
       </Card>
 
       <div className="mt-8 text-center">
-         <Button onClick={() => router.push('/mondi-paralleli')} variant="default" className="gap-2">
+         <Button onClick={() => router.push('/mondi-paralleli')} variant="default" size="default" className="gap-2">
             <BookOpenText className="h-4 w-4" /> Esplora Altri Mondi
           </Button>
       </div>

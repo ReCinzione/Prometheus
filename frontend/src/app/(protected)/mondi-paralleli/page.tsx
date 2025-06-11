@@ -97,7 +97,7 @@ export default function MondiParalleliPage() {
         <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-destructive mb-2">Oops! Qualcosa è andato storto.</h2>
         <p className="text-muted-foreground mb-4">{error}</p>
-        <Button onClick={() => user ? fetchSharedChapters(user.id) : fetchSharedChapters(undefined)}>
+        <Button variant="default" size="default" className="" onClick={() => user ? fetchSharedChapters(user.id) : fetchSharedChapters(undefined)}>
           Riprova Caricamento
         </Button>
       </div>
@@ -149,6 +149,7 @@ export default function MondiParalleliPage() {
                   onClick={() => handleViewChapter(chapter.id)}
                   className="w-full gap-2"
                   variant="outline"
+                  size="default" // Added size
                 >
                   <Eye className="h-4 w-4" /> Leggi Capitolo Completo
                 </Button>

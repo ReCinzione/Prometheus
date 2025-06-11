@@ -371,6 +371,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                 <Button
                   onClick={handleStampa}
                   variant="default"
+                  size="default" // Added this line
                   className="bg-purple-600 hover:bg-purple-700"
                 >
                   <ImageIcon className="mr-2 h-4 w-4" /> Esporta in PDF
@@ -378,6 +379,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                 <Button
                   onClick={() => setShowCoverUpload(!showCoverUpload)}
                   variant="outline"
+                  size="default" // Added for consistency, though not explicitly requested for this one
                 >
                   <ImageIcon className="mr-2 h-4 w-4" />
                   {showCoverUpload ? 'Annulla Modifica Copertina' : 'Modifica Copertina'}

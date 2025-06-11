@@ -24,8 +24,6 @@ export default function Header({ session }: HeaderProps) {
     }
   };
 
-  };
-
   const userDisplayName = session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
 
   return (

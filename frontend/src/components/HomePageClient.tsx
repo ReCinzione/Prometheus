@@ -15,8 +15,11 @@ import {
   X, 
   User as UserIcon,
   LogOut,
-  Sparkles
+  Sparkles,
+  HelpCircle // Icon for Tutorial button
 } from 'lucide-react';
+import TutorialModal from './TutorialModal'; // Import TutorialModal
+import { Button } from '@/components/ui/button'; // Ensure Button is imported
 
 interface HomePageClientProps {
   user: User;
@@ -26,6 +29,7 @@ export default function HomePageClient({ user }: HomePageClientProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentQuote, setCurrentQuote] = useState(0);
   const router = useRouter();
+  const [showManualTutorial, setShowManualTutorial] = useState(false); // State for manual tutorial
 
   const quotes = [
     "Ogni seme che pianti diventa parte del tuo paesaggio interiore.",
@@ -291,10 +295,26 @@ export default function HomePageClient({ user }: HomePageClientProps) {
             <p className="text-sm text-gray-500">
               Se il problema persiste, prova a cancellare i cookie del browser o contatta il supporto.
             </p>
+            {/* Button to re-open tutorial */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.6 }}
+            >
+              <Button
+                variant="outline"
+                onClick={() => setShowManualTutorial(true)}
+                className="mt-6 group"
+              >
+                <HelpCircle size={18} className="mr-2 text-purple-600 group-hover:animate-pulse" />
+                Rivedi la Guida Introduttiva
+              </Button>
+            </motion.div>
           </motion.div>
 
         </div>
       </div>
+      <TutorialModal isOpen={showManualTutorial} onClose={() => setShowManualTutorial(false)} />
     </div>
   );
 }

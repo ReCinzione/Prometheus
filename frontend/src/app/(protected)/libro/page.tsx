@@ -143,37 +143,6 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
 
   const handleCoverUploadSuccess = (newCoverUrl: string) => {
     setCurrentBook(prevBook => prevBook ? { ...prevBook, cover_image_url: newCoverUrl, updated_at: new Date().toISOString() } : null);
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        currentUser = authUser;
-      }
-      setUser(currentUser);
-
-      if (currentUser) {
-        // Fetch book for the user. Assuming one book per user for now, or the first one.
-        // In a multi-book scenario, you'd need a way to select which book.
-        let { data: bookData, error: bookError } = await supabase
-          .from('libri')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .maybeSingle(); // Use maybeSingle if one book per user, or order/limit(1) for first
-
-        if (bookError) {
-          console.error('Errore nel recupero del libro:', bookError);
-        }
-
-        if (!bookData && !bookError) { // No book exists, create one
-          const { data: newBook, error: createError } = await supabase
-            .from('libri')
-            .insert({ user_id: currentUser.id, title: 'Il Mio Libro Vivente' }) // Default title
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Errore nella creazione del libro:', createError);
-          } else {
-            bookData = newBook;
-          }
-        }
     setShowCoverUpload(false); // Optionally close the upload UI
   };
 

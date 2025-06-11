@@ -67,17 +67,82 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  useEffect(() => {
-    if (initialUser) {
-      setUser(initialUser);
-      setLoading(false);
-      return;
+  const fetchUserAndBook = useCallback(async () => {
+    setLoading(true);
+    let currentUser = initialUser;
+    if (!currentUser) {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      currentUser = authUser;
     }
+    setUser(currentUser);
 
-    const fetchUserAndBook = useCallback(async () => {
-      setLoading(true);
-      let currentUser = initialUser;
-      if (!currentUser) {
+    if (currentUser) {
+      // Fetch book for the user. Assuming one book per user for now, or the first one.
+      // In a multi-book scenario, you'd need a way to select which book.
+      let { data: bookData, error: bookError } = await supabase
+        .from('libri')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .maybeSingle(); // Use maybeSingle if one book per user, or order/limit(1) for first
+
+      if (bookError) {
+        console.error('Errore nel recupero del libro:', bookError);
+      }
+
+      if (!bookData && !bookError) { // No book exists, create one
+        const { data: newBook, error: createError } = await supabase
+          .from('libri')
+          .insert({ user_id: currentUser.id, title: 'Il Mio Libro Vivente' }) // Default title
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Errore nella creazione del libro:', createError);
+        } else {
+          bookData = newBook;
+        }
+      }
+      setCurrentBook(bookData);
+
+      // Fetch chapters
+      const { data: chapterData, error: chapterError } = await supabase
+        .from('capitoli')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .in('stato', ['nel_libro', 'bozza_da_archivio']) // Filter by relevant statuses
+        .order('ordine', { ascending: true });
+
+      if (chapterError) {
+        console.error('Errore nel recupero dei capitoli:', chapterError);
+        // Optionally set an error state for chapters
+      } else {
+        setChapters(chapterData || []);
+      }
+
+      // Fetch shared status for these chapters
+      if (currentUser && chapterData && chapterData.length > 0) {
+        const { data: sharedData, error: sharedError } = await supabase
+          .from('shared_chapters')
+          .select('chapter_id')
+          .eq('original_user_id', currentUser.id)
+          .in('chapter_id', chapterData.map(ch => ch.id));
+
+        if (sharedError) {
+          console.error('Errore nel recupero stato condivisione capitoli:', sharedError);
+        } else {
+          setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || []));
+        }
+      }
+    }
+    setLoading(false);
+  }, [supabase, initialUser]); // State setters (setLoading, setUser, etc.) are stable and not needed here
+
+  useEffect(() => {
+    fetchUserAndBook();
+  }, [fetchUserAndBook]);
+
+  const handleCoverUploadSuccess = (newCoverUrl: string) => {
+    setCurrentBook(prevBook => prevBook ? { ...prevBook, cover_image_url: newCoverUrl, updated_at: new Date().toISOString() } : null);
         const { data: { user: authUser } } = await supabase.auth.getUser();
         currentUser = authUser;
       }
@@ -109,46 +174,6 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
             bookData = newBook;
           }
         }
-        setCurrentBook(bookData);
-
-        // Fetch chapters
-        const { data: chapterData, error: chapterError } = await supabase
-          .from('capitoli')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .in('stato', ['nel_libro', 'bozza_da_archivio']) // Filter by relevant statuses
-          .order('ordine', { ascending: true });
-
-        if (chapterError) {
-          console.error('Errore nel recupero dei capitoli:', chapterError);
-          // Optionally set an error state for chapters
-        } else {
-          setChapters(chapterData || []);
-        }
-
-        // Fetch shared status for these chapters
-        if (currentUser && chapterData && chapterData.length > 0) {
-          const { data: sharedData, error: sharedError } = await supabase
-            .from('shared_chapters')
-            .select('chapter_id')
-            .eq('original_user_id', currentUser.id)
-            .in('chapter_id', chapterData.map(ch => ch.id));
-
-          if (sharedError) {
-            console.error('Errore nel recupero stato condivisione capitoli:', sharedError);
-          } else {
-            setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || []));
-          }
-        }
-      }
-      setLoading(false);
-    }, [supabase, initialUser]);
-
-    fetchUserAndBook();
-  }, [fetchUserAndBook]); // fetchUserAndBook is stable due to useCallback wrapping
-
-  const handleCoverUploadSuccess = (newCoverUrl: string) => {
-    setCurrentBook(prevBook => prevBook ? { ...prevBook, cover_image_url: newCoverUrl, updated_at: new Date().toISOString() } : null);
     setShowCoverUpload(false); // Optionally close the upload UI
   };
 

@@ -247,6 +247,7 @@ export default function CoverUploadClient({
               disabled={loading || !completedCrop || !imgSrc}
               className="w-full gap-2"
               variant="default"
+              size="default" // Added this line
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

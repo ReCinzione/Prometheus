@@ -60,6 +60,8 @@ type RawInteractionSessionSummary = {
   seedTitleGenerated: string | null;
   lastInteractionDate: string;
   interactionCount: number;
+  isInBook?: boolean; // New field
+  isDeletedFromBook?: boolean; // New field
 };
 
 export default function ArchivioClient({ user }: { user: User }) {
@@ -84,44 +86,76 @@ export default function ArchivioClient({ user }: { user: User }) {
     try {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await supabase
+
+      // 1. Fetch all raw interactions for the user
+      const { data: rawInteractionsData, error: fetchError } = await supabase
         .from('raw_seed_interactions')
         .select('session_id, seed_archetype_id, seed_title_generated, created_at, interaction_step')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-
-      if (!data) {
+      if (!rawInteractionsData) {
         setRawSessions([]);
+        setLoading(false);
         return;
       }
 
-      // Process data to group by session_id and create summaries
+      // 2. Fetch 'capitoli' that are linked to raw_interaction_session_id
+      const { data: bookChapters, error: chaptersError } = await supabase
+        .from('capitoli')
+        .select('raw_interaction_session_id, stato')
+        .eq('user_id', userId)
+        .in('stato', ['nel_libro', 'archivio_cancellato'])
+        .isnot('raw_interaction_session_id', null);
+
+      if (chaptersError) throw chaptersError;
+
+      const inBookSessionIds = new Set<string>();
+      const deletedFromBookSessionIds = new Set<string>();
+
+      if (bookChapters) {
+        bookChapters.forEach(chapter => {
+          if (chapter.raw_interaction_session_id) {
+            if (chapter.stato === 'nel_libro') {
+              inBookSessionIds.add(chapter.raw_interaction_session_id);
+            } else if (chapter.stato === 'archivio_cancellato') {
+              deletedFromBookSessionIds.add(chapter.raw_interaction_session_id);
+            }
+          }
+        });
+      }
+
+      // 3. Process raw interactions into session summaries
       const sessionsMap = new Map<string, RawInteractionSessionSummary>();
-      data.forEach(item => {
-        const existing = sessionsMap.get(item.session_id);
-        if (!existing) {
-          sessionsMap.set(item.session_id, {
+      rawInteractionsData.forEach(item => {
+        let sessionSummary = sessionsMap.get(item.session_id);
+        if (!sessionSummary) {
+          sessionSummary = {
             sessionId: item.session_id,
             seedArchetypeId: item.seed_archetype_id,
-            // Attempt to get a title; prefer one that's explicitly set, or from a later step.
-            // This simple logic takes the first non-null title encountered for the session during processing.
-            // A more robust way would be to specifically query for the title from the 'gemini_response_final' step.
             seedTitleGenerated: item.seed_title_generated,
             lastInteractionDate: item.created_at,
-            interactionCount: 1,
-          });
-        } else {
-          existing.interactionCount += 1;
-          if (new Date(item.created_at) > new Date(existing.lastInteractionDate)) {
-            existing.lastInteractionDate = item.created_at;
-          }
-          // If a later interaction has a title and the current one doesn't, update it.
-          if (item.seed_title_generated && !existing.seedTitleGenerated) {
-             existing.seedTitleGenerated = item.seed_title_generated;
-          }
+            interactionCount: 0, // Will be incremented
+            isInBook: inBookSessionIds.has(item.session_id) && !deletedFromBookSessionIds.has(item.session_id),
+            isDeletedFromBook: deletedFromBookSessionIds.has(item.session_id),
+          };
         }
+
+        sessionSummary.interactionCount += 1;
+        // Update last interaction date if this item is newer
+        if (new Date(item.created_at) > new Date(sessionSummary.lastInteractionDate)) {
+          sessionSummary.lastInteractionDate = item.created_at;
+        }
+        // Update title if this item has one and current summary doesn't, or if this item is later and has a title
+        if (item.seed_title_generated && (!sessionSummary.seedTitleGenerated || new Date(item.created_at) >= new Date(sessionSummary.lastInteractionDate))) {
+          sessionSummary.seedTitleGenerated = item.seed_title_generated;
+        }
+        // Ensure flags are updated if processing multiple items for the same session
+        sessionSummary.isInBook = inBookSessionIds.has(item.session_id) && !deletedFromBookSessionIds.has(item.session_id);
+        sessionSummary.isDeletedFromBook = deletedFromBookSessionIds.has(item.session_id);
+
+        sessionsMap.set(item.session_id, sessionSummary);
       });
 
       const sortedSessions = Array.from(sessionsMap.values()).sort(
@@ -130,7 +164,7 @@ export default function ArchivioClient({ user }: { user: User }) {
       setRawSessions(sortedSessions);
 
     } catch (err) {
-      console.error('Error loading raw interaction sessions:', err);
+      console.error('Error loading raw interaction sessions or chapters:', err);
       const supabaseError = err as any;
       setError(`Errore nel caricamento dell'archivio: ${supabaseError.message || 'Errore sconosciuto'}`);
     } finally {
@@ -264,11 +298,18 @@ export default function ArchivioClient({ user }: { user: User }) {
   };
 
 
-  // Filtered sessions based on search term
-  const filteredSessions = rawSessions.filter(session =>
+
+  const sessionsInBook = rawSessions.filter(s => s.isInBook && !s.isDeletedFromBook);
+  const otherArchivedSessions = rawSessions.filter(s => !s.isInBook || s.isDeletedFromBook);
+
+  // Apply search term to both lists
+  const filterLogic = (session: RawInteractionSessionSummary) =>
     (session.seedArchetypeId && session.seedArchetypeId.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (session.seedTitleGenerated && session.seedTitleGenerated.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+    (session.seedTitleGenerated && session.seedTitleGenerated.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const filteredSessionsInBook = sessionsInBook.filter(filterLogic);
+  const filteredOtherArchivedSessions = otherArchivedSessions.filter(filterLogic);
+
 
   if (loading) {
     return (
@@ -297,6 +338,73 @@ export default function ArchivioClient({ user }: { user: User }) {
     );
   }
 
+  const renderSessionCard = (session: RawInteractionSessionSummary, isBookContext: boolean) => {
+    const isExpanded = expandedCards.has(session.sessionId);
+    const buttonDisabled = (isBookContext && !session.isDeletedFromBook) || promotingToChapter === session.sessionId;
+    let buttonText = "Crea Capitolo da questa Interazione";
+    if (isBookContext && !session.isDeletedFromBook) {
+      buttonText = "Già nel Libro";
+    } else if (session.isDeletedFromBook) {
+      buttonText = "Ricrea Capitolo (da sessione archiviata)";
+    }
+
+
+    return (
+      <Card key={session.sessionId} className={`overflow-hidden transition-all duration-200 ${isBookContext && !session.isDeletedFromBook ? 'border-green-500' : (session.isDeletedFromBook ? 'border-orange-400' : '')}`}>
+        <CardHeader className="pb-3 cursor-pointer" onClick={() => handleViewSessionDetails(session.sessionId)}>
+          <div className="flex items-start justify-between">
+            <CardTitle className="flex items-center gap-3 flex-1 group">
+              <span className="text-2xl">💬</span>
+              <span className="group-hover:text-primary transition-colors">
+                {session.seedTitleGenerated || session.seedArchetypeId}
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                {session.isDeletedFromBook && <Badge variant="outline" className="border-orange-400 text-orange-500">Rimosso dal Libro</Badge>}
+                {isBookContext && !session.isDeletedFromBook && <Badge variant="default" className="bg-green-600 hover:bg-green-700">Nel Libro</Badge>}
+                <Badge variant="outline">Interazioni: {session.interactionCount}</Badge>
+                <Badge variant="secondary" className="gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(session.lastInteractionDate).toLocaleDateString()}
+                </Badge>
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
+            </CardTitle>
+          </div>
+        </CardHeader>
+
+        {isExpanded && (
+          <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <p className="text-sm text-muted-foreground">
+              ID Sessione: {session.sessionId} <br />
+              Archetipo Seme: {session.seedArchetypeId}
+            </p>
+            <Button
+              onClick={() => handleCreateChapterFromSession(session)}
+              disabled={buttonDisabled}
+              variant={isBookContext && !session.isDeletedFromBook ? "secondary" : "default"}
+              size="sm"
+              className="gap-2"
+            >
+              {promotingToChapter === session.sessionId ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CopyPlus className="h-4 w-4" />
+              )}
+              {buttonText}
+            </Button>
+            <p className="text-xs text-center italic mt-2">
+              (La visualizzazione dettagliata dei passaggi dell'interazione sarà implementata qui o in una pagina dedicata.)
+            </p>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
       <div className="text-center space-y-4">
@@ -315,95 +423,53 @@ export default function ArchivioClient({ user }: { user: User }) {
             className="w-full"
           />
         </div>
-         {/* Add Test button removed for now, focus on displaying raw interactions */}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center gap-2 p-4">
-            <Sparkles className="h-5 w-5 text-yellow-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Sessioni Totali</p>
-              <p className="text-2xl font-bold">{rawSessions.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Other summary cards can be adapted or removed */}
+      {/* Summary Cards - can be re-enabled or adjusted as needed */}
+      {/* ... */}
+
+      {/* Section for Sessions Already in Book */}
+      {filteredSessionsInBook.length > 0 && (
+        <div className="space-y-4 mt-8 pt-6 border-t">
+          <h2 className="text-2xl font-semibold">Sessioni Già nel Libro</h2>
+          {filteredSessionsInBook.map(session => renderSessionCard(session, true))}
+        </div>
+      )}
+
+      {/* Section for Other Archived Sessions */}
+      <div className="space-y-4 mt-8 pt-6 border-t">
+         <h2 className="text-2xl font-semibold">Altre Sessioni Archiviate</h2>
+        {filteredOtherArchivedSessions.length === 0 && rawSessions.length > 0 && !loading && (
+           <Card className="py-12">
+            <CardContent className="text-center space-y-4">
+              <ArchiveX className="h-16 w-16 text-muted-foreground mx-auto" />
+              <h3 className="text-xl font-semibold">Nessuna altra sessione archiviata</h3>
+              <p className="text-muted-foreground">
+                {searchTerm ? 'Nessun risultato per la ricerca attuale in questa sezione.' : 'Tutte le sessioni sono visualizzate sopra o non ci sono altre sessioni.'}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+        {filteredOtherArchivedSessions.length > 0 &&
+          filteredOtherArchivedSessions.map(session => renderSessionCard(session, false))
+        }
       </div>
 
-      <div className="space-y-4">
-        {filteredSessions.length === 0 ? (
-          <Card className="py-12">
+
+      {(rawSessions.length === 0 && !loading) && (
+         <Card className="py-12">
             <CardContent className="text-center space-y-4">
               <ArchiveX className="h-16 w-16 text-muted-foreground mx-auto" />
               <h3 className="text-xl font-semibold">Nessuna interazione trovata</h3>
               <p className="text-muted-foreground">
-                {searchTerm 
-                  ? 'Nessun risultato per la ricerca attuale.'
-                  : 'Non hai ancora sessioni di interazione registrate. Inizia un dialogo con un seme!'}
+                Non hai ancora sessioni di interazione registrate. Inizia un dialogo con un seme!
               </p>
             </CardContent>
           </Card>
-        ) : (
-          filteredSessions.map((session) => {
-            const isExpanded = expandedCards.has(session.sessionId);
-            // const isEditing = editingId === session.id; // Editing logic to be re-evaluated for raw sessions
-            
-            return (
-              <Card key={session.sessionId} className="overflow-hidden transition-all duration-200">
-                <CardHeader className="pb-3 cursor-pointer" onClick={() => handleViewSessionDetails(session.sessionId)}>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="flex items-center gap-3 flex-1 group">
-                      {/* Icon can be generic or mapped from seedArchetypeId */}
-                      <span className="text-2xl">💬</span>
-                      <span className="group-hover:text-primary transition-colors">
-                        {session.seedTitleGenerated || session.seedArchetypeId}
-                      </span>
-                      <div className="ml-auto flex items-center gap-2">
-                        <Badge variant="outline">Interazioni: {session.interactionCount}</Badge>
-                        <Badge variant="secondary" className="gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(session.lastInteractionDate).toLocaleDateString()}
-                        </Badge>
-                        {isExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </div>
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-
-                {isExpanded && (
-                  <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
-                    <p className="text-sm text-muted-foreground">
-                      ID Sessione: {session.sessionId} <br />
-                      Archetipo Seme: {session.seedArchetypeId}
-                    </p>
-                    <Button
-                      onClick={() => handleCreateChapterFromSession(session)}
-                      disabled={promotingToChapter === session.sessionId}
-                      variant="default"
-                      size="sm"
-                      className="gap-2"
-                    >
-                      {promotingToChapter === session.sessionId ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <CopyPlus className="h-4 w-4" />
-                      )}
-                      Crea Capitolo da questa Interazione
-                    </Button>
-                    {/* Detailed steps would be fetched and shown here or on a new page */}
-                    <p className="text-xs text-center italic mt-2">
-                      (La visualizzazione dettagliata dei passaggi dell'interazione sarà implementata qui o in una pagina dedicata.)
-                    </p>
-                  </CardContent>
-                )}
-              </Card>
-            );
-          })
+      )}
+    </div>
+  );
+}
         )}
       </div>
     </div>

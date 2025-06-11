@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { v4 as uuidv4 } from 'uuid'; // Added for session ID
 import { createBrowserClient } from '@supabase/ssr';
 import { salvaCapitolo } from '@/lib/supabaseHelpers';
 import { semi } from '@/lib/semi';
@@ -45,15 +46,24 @@ export default function ScriviPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [fase, setFase] = useState<FaseInterazione>('attesa1');
   const [salvataggioStatus, setSalvataggioStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  // New state variables for session and interaction tracking
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [interactionNumber, setInteractionNumber] = useState(0);
   const [alreadyWritten, setAlreadyWritten] = useState(false);
 
   useEffect(() => {
-    const getUser = async () => {
+    const initializeSession = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserId(user?.id || null);
+      setSessionId(uuidv4()); // Generate a new session ID on component mount/new seed
+      setInteractionNumber(0); // Reset interaction number
     };
-    getUser();
-  }, []);
+    initializeSession();
+    // Dependency array: if semeId can change while the component is mounted, add semeId.
+    // For now, assuming it mounts per unique seed page or semeId is stable.
+    // If navigating between seeds on this same page instance, semeId in dependency array is crucial.
+  }, [semeId]); // Re-initialize session if semeId changes (e.g. user navigates to a new seed)
 
   // Controlla se il seme è già stato scritto (eccetto sem_99)
   useEffect(() => {
@@ -140,13 +150,25 @@ export default function ScriviPage() {
     try {
       if (isSeme99) {
         // Invio diretto, logica eco
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/chat`, {
+        if (!userId || !sessionId) {
+          setError("Errore: ID utente o sessione non inizializzati.");
+          setLoading(false);
+          return;
+        }
+        const currentInteractionNumForSeme99 = 0; // Seme 99 is single interaction from this page's perspective
+
+        const response = await fetch(`/api/archetipo-gemini`, { // Use local API route
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            user_input: userMessage.content,
-            seme_id: semeId,
-            is_eco_request: true
+            frasi: userMessage.content, // Matches expected 'frasi' in API route
+            nome: selected?.nome || semeId, // Pass 'nome' for semeId construction in API route
+            is_eco_request: true, // Specific to Seme 99 flow
+            user_id: userId,
+            session_id: sessionId,
+            interaction_number: currentInteractionNumForSeme99, // Seme 99 is always first interaction in this context
+            history: [], // Seme 99 doesn't use history from this page
+            last_assistant_question: null
           }),
         });
 
@@ -176,26 +198,41 @@ export default function ScriviPage() {
       }
 
       const assistantMessages = messages.filter(m => m.type === 'assistant');
-      const isFirstInteraction = assistantMessages.length === 0;
+      const isFirstNormalInteraction = assistantMessages.length === 0;
+      const currentInteractionNum = isFirstNormalInteraction ? 0 : 1;
       
       // Estrai l'ultima domanda di Prometheus per passarla al backend
       const lastAssistantQuestion = assistantMessages.length > 0 
         ? assistantMessages[assistantMessages.length - 1].fraseFinale 
         : null;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/chat`, {
+      if (!userId || !sessionId) {
+        setError("Errore: ID utente o sessione non inizializzati.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/archetipo-gemini`, { // Use local API route
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          user_input: userMessage.content, 
-          seme_id: semeId, 
-          // History contiene SOLO type e content (stringificato se lista)
+          frasi: userMessage.content, // Matches 'frasi' in API route
+          nome: selected?.nome || semeId, // Pass 'nome' for semeId construction in API route
+          descrizione: selected?.descrizione, // Optional: pass description if available/needed
+
+          // History per il backend Python (diverso da `messages` state che ha più dettagli)
+          // Il backend Python si aspetta una lista di liste: [type, content_string]
           history: messages.map(m => [
             m.type, 
             Array.isArray(m.content) ? m.content.join('\n\n') : m.content
           ]),
-          is_first_interaction: isFirstInteraction,
-          last_assistant_question: lastAssistantQuestion // PASSA LA DOMANDA QUI
+          is_first_interaction: isFirstNormalInteraction, // Usato dal backend Python per la logica del prompt
+          last_assistant_question: lastAssistantQuestion,
+
+          // Nuovi campi per il logging e gestione sessione
+          user_id: userId,
+          session_id: sessionId,
+          interaction_number: currentInteractionNum // 0 per la prima interazione, 1 per la seconda
         }),
       });
 
@@ -270,6 +307,9 @@ export default function ScriviPage() {
     setFase('attesa1');
     setSalvataggioStatus('idle');
     setShowRacconto(false);
+    // Reset session for a completely new chat if "Ricomincia" is clicked
+    setSessionId(uuidv4());
+    setInteractionNumber(0);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

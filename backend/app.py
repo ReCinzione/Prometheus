@@ -10,6 +10,9 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from supabase import create_client, Client as SupabaseClient # Supabase import
+
+from contextlib import asynccontextmanager
 
 # Carica le variabili d'ambiente dal file .env
 load_dotenv()
@@ -18,37 +21,21 @@ load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
 
-# Carica i dati dei semi dal file JSON
+# Supabase Client Initialization
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+    print("[ERROR_CRITICAL] SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment variables.")
+    # Potresti voler sollevare un'eccezione qui o gestire diversamente la mancanza di configurazione
+    supabase_client: Optional[SupabaseClient] = None
+else:
+    supabase_client: Optional[SupabaseClient] = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    print("[INFO] Supabase client initialized.")
+
+
 # Questo dizionario conterrà tutti i dati dei semi per un accesso rapido e coerente
 SEMI_DATA: Dict[str, Any] = {}
-try:
-    with open('semi_data.json', 'r', encoding='utf-8') as f:
-        semi_list = json.load(f)
-        SEMI_DATA = {seme['id']: seme for seme in semi_list}
-    print("[INFO] Dati semi caricati con successo da semi_data.json")
-except FileNotFoundError:
-    print("[ERROR] semi_data.json non trovato. Assicurati che sia nella stessa directory di app.py.")
-    print("Usando dati di fallback limitati per sem_99. L'applicazione potrebbe non funzionare correttamente senza semi_data.json.")
-    # Fornisce un fallback minimo per sem_99 se il file non viene trovato
-    SEMI_DATA = {
-        "sem_99": {
-            "id": "sem_99",
-            "nome": "L'Eco Universale (Fallback)",
-            "frase_finale": "La verità si manifesta nella scrittura libera (Fallback).",
-            "sigillo": {
-                "simbolo_dominante": "❓", # Simbolo generico di fallback
-                "immagine": "Un sigillo di fallback dovuto a dati mancanti.",
-                "colore": "#AAAAAA",
-                "forma": "quadrato",
-                "codice_sigillo": "SIG-FB-99"
-            }
-        },
-        # Puoi aggiungere altri semi di fallback qui se strettamente necessario per evitare crash
-    }
-except json.JSONDecodeError:
-    print("[ERROR] Errore di parsing in semi_data.json. Controlla il formato JSON.")
-    print("L'applicazione potrebbe non funzionare correttamente.")
-    SEMI_DATA = {} # Inizializza vuoto per evitare errori di tipo
 
 # Modelli Pydantic per la validazione dei dati in ingresso e in uscita
 class SigilloData(BaseModel):
@@ -67,6 +54,10 @@ class ChatRequest(BaseModel):
     interaction_number: Optional[int] = 0 # 0 per prima interazione, poi 1, 2...
     is_eco_request: Optional[bool] = False # True se la richiesta è per generare l'eco di sem_99
 
+    # New fields for logging
+    session_id: str # UUID as string
+    user_id: str    # UUID as string (ideally from auth, passed by frontend proxy)
+
 class ChatResponse(BaseModel):
     output: Union[str, List[str]]
     eco: List[str]
@@ -78,8 +69,100 @@ class ImageGenerationRequest(BaseModel):
     titolo: Optional[str] = None
     autore: Optional[str] = None
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load data on startup
+    global SEMI_DATA
+    try:
+        # Assicurati che il percorso sia corretto per l'ambiente Render
+        # Se 'semi_data.json' è nella root del progetto (stessa dir di app.py), il path è corretto
+        # Se il disco in render.yaml monta in /opt/render/project/src/ e app.py è lì,
+        # il path relativo 'semi_data.json' dovrebbe funzionare.
+        # Altrimenti, potrebbe essere necessario un path assoluto come '/opt/render/project/src/semi_data.json'
+        # o verificare la current working directory di Render.
+        # Per ora, assumiamo che 'semi_data.json' sia accessibile direttamente.
+        file_path = 'semi_data.json'
+        # Per testare localmente potresti voler specificare un path, es:
+        # file_path = os.path.join(os.path.dirname(__file__), 'semi_data.json')
+
+        with open(file_path, 'r', encoding='utf-8') as f:
+            semi_list = json.load(f)
+            SEMI_DATA = {seme['id']: seme for seme in semi_list}
+        print("[INFO] Dati semi caricati con successo da semi_data.json durante lo startup.")
+    except FileNotFoundError:
+        print(f"[ERROR] {file_path} non trovato durante lo startup.")
+        print("Usando dati di fallback limitati per sem_99. L'applicazione potrebbe non funzionare correttamente.")
+        SEMI_DATA = {
+            "sem_99": {
+                "id": "sem_99",
+                "nome": "L'Eco Universale (Fallback)",
+                "frase_finale": "La verità si manifesta nella scrittura libera (Fallback).",
+                "sigillo": {
+                    "simbolo_dominante": "❓",
+                    "immagine": "Un sigillo di fallback dovuto a dati mancanti.",
+                    "colore": "#AAAAAA",
+                    "forma": "quadrato",
+                    "codice_sigillo": "SIG-FB-99"
+                }
+            },
+        }
+    except json.JSONDecodeError:
+        print(f"[ERROR] Errore di parsing in {file_path} durante lo startup. Controlla il formato JSON.")
+        print("L'applicazione potrebbe non funzionare correttamente.")
+        SEMI_DATA = {}
+    yield
+    # Clean up resources if any
+    print("[INFO] Applicazione in chiusura.")
+
+# Helper function to log interactions to Supabase
+_interaction_step_counter: Dict[str, int] = {} # In-memory counter for steps per session_id
+
+def log_interaction_to_db(
+    user_id: str,
+    session_id: str,
+    seed_archetype_id: str,
+    interaction_type: str,
+    interaction_data: Dict[str, Any], # Renamed from payload_data for clarity
+    seed_title_generated: Optional[str] = None
+):
+    global _interaction_step_counter
+    if not supabase_client:
+        print(f"[ERROR_DB_LOG] Supabase client not initialized. Skipping DB log for type: {interaction_type}")
+        # Fallback to print if Supabase client is not available
+        print(f"[FALLBACK_LOGGING] User: {user_id}, Session: {session_id}, Seed: {seed_archetype_id}, Type: {interaction_type}, Data: {interaction_data}, Title: {seed_title_generated}")
+        return
+
+    # Manage interaction step: increment for each new log within a session
+    current_step = _interaction_step_counter.get(session_id, 0) + 1
+    _interaction_step_counter[session_id] = current_step
+
+    try:
+        log_entry = {
+            "user_id": user_id,
+            "session_id": session_id,
+            "seed_archetype_id": seed_archetype_id,
+            "interaction_step": current_step, # Use the counter
+            "interaction_type": interaction_type,
+            "data": interaction_data,
+            "seed_title_generated": seed_title_generated
+        }
+        print(f"[DB_LOG_ATTEMPT] Logging to Supabase: {log_entry}") # Debug print before insert
+        response = supabase_client.table("raw_seed_interactions").insert(log_entry).execute()
+        if response.data:
+            print(f"[DB_LOG_SUCCESS] Interaction logged successfully for type: {interaction_type}, session: {session_id}, step: {current_step}")
+        else: # Changed to check response.error based on typical Supabase-py patterns
+            # Supabase-py v2 might have response.error
+            error_info = getattr(response, 'error', 'Unknown error structure')
+            print(f"[ERROR_DB_LOG] Failed to log interaction to Supabase for type: {interaction_type}. Response: {error_info}")
+
+    except Exception as e:
+        print(f"[ERROR_DB_LOG] Exception during Supabase insert for type: {interaction_type}: {e}")
+        # Fallback to print on exception
+        print(f"[FALLBACK_LOGGING_EXCEPTION] User: {user_id}, Session: {session_id}, Seed: {seed_archetype_id}, Type: {interaction_type}, Data: {interaction_data}, Title: {seed_title_generated}, Step: {current_step}")
+
+
 # Inizializzazione dell'applicazione FastAPI
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # Configurazione CORS più sicura per la produzione
 # In produzione, usa la variabile d'ambiente FRONTEND_URL o consenti tutti gli origini in sviluppo
@@ -240,6 +323,13 @@ def create_fallback_response(req: ChatRequest, error_msg: str) -> ChatResponse:
 # Endpoint principale della chat
 @app.post("/api/chat", response_model=ChatResponse)
 def chat_endpoint(req: ChatRequest):
+    # Log initial user input for this interaction number
+    user_input_log_type = f"user_input_{req.interaction_number}"
+    log_interaction_to_db(
+        user_id=req.user_id, session_id=req.session_id, seed_archetype_id=req.seme_id,
+        interaction_type=user_input_log_type, interaction_data={'text': req.user_input}
+    )
+
     # Recupera i dati del seme corrente dal SEMI_DATA caricato
     current_seme_info = SEMI_DATA.get(req.seme_id)
     if not current_seme_info:
@@ -282,6 +372,14 @@ def chat_endpoint(req: ChatRequest):
             }}}}
         }}}}
         """
+        # Log Gemini prompt for Seme 99
+        gemini_prompt_log_type_99 = "gemini_prompt_eco_99"
+        log_interaction_to_db(
+            user_id=req.user_id, session_id=req.session_id, seed_archetype_id=req.seme_id,
+            interaction_type=gemini_prompt_log_type_99,
+            interaction_data={'prompt': prompt_99.strip()} # Store full prompt
+        )
+
         payload = {
             "contents": [
                 {"parts": [{"text": prompt_99}]}
@@ -300,7 +398,20 @@ def chat_endpoint(req: ChatRequest):
             data = response.json()
             text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
             print(f"[DEBUG] Risposta raw da Gemini (Seme 99): {text}")
+
             parsed = extract_json_from_text(text)
+
+            # Log Gemini response for Seme 99
+            gemini_response_log_type_99 = "gemini_response_eco_99"
+            log_data_99 = {
+                "raw_response": text, "parsed_output": parsed.get("output"), "parsed_eco": parsed.get("eco"),
+                "parsed_frase_finale": parsed.get("frase_finale"), "sigillo": parsed.get("sigillo")
+            }
+            log_interaction_to_db(
+                user_id=req.user_id, session_id=req.session_id, seed_archetype_id=req.seme_id,
+                interaction_type=gemini_response_log_type_99, interaction_data=log_data_99,
+                seed_title_generated=parsed.get('frase_finale')
+            )
             
             # Se l'AI non genera un sigillo valido, usiamo quello dal SEMI_DATA
             final_sigillo_data = parsed.get("sigillo")
@@ -343,6 +454,7 @@ def chat_endpoint(req: ChatRequest):
     fallback_frase_finale_intermediate = 'La tua domanda precedente non è stata fornita.'
 
     # Determina il prompt da inviare a Gemini
+    prompt_log_type_suffix = f"interaction_{req.interaction_number}"
     if req.interaction_number == 0: # Prima interazione per un seme normale
         prompt = f"""
 **Ruolo:** Sei un'eco simbolica di Prometheus, un riflettore di paesaggi interiori. Il tuo compito è trasformare le parole dell'utente in un'immagine che rivela la sua esperienza profonda, stimolando l'auto-scoperta.
@@ -393,9 +505,9 @@ Contesto simbolico precedente (risposta di Prometheus fase 1): {prometheus_first
 
 JSON:
 {{{{
-    "output": "testo poetico simbolo del percorso dell'utente (singola stringa fluida, 10-12 frasi, evocativa, non didascalica)",
+    "output": "testo poetico simbolo del percorso dell'utente (singola stringa fluida, composta da circa 10-12 frasi, evocativa, non didascalica)",
     "eco": ["eco simbolico finale (singola frase densa di significato)"],
-    "frase_finale": "frase conclusiva altamente evocativa e simbolica, che chiude il cerchio (singola stringa)",
+    "frase_finale": "un titolo conciso, evocativo e poetico per il 'output' precedente, presentato come una singola frase dichiarativa (non una domanda)",
     "sigillo": {{{{
         "simbolo_dominante": "emoji",
         "immagine": "descrizione immagine metaforica",
@@ -405,6 +517,11 @@ JSON:
     }}}}
 }}}}
 """
+        # Nota: La specifica "10-12 frasi" era già presente nella descrizione di "Tessitura Simbolica".
+        # La modifica qui rinforza che "output" deve seguire quella lunghezza e "frase_finale" è il suo titolo.
+        prompt_log_type_suffix = "final_normal_interaction"
+
+
     else: # Seconda (o intermedia se avessi più di 2 interazioni totali) interazione per un seme normale
         prompt = f"""
 **Ruolo:** Continua il tuo ruolo di eco simbolica di Prometheus, riflettendo i paesaggi interiori. Il tuo compito è rispondere all'ultima riflessione dell'utente, mantenendo il tono poetico e stimolando una ulteriore auto-scoperta.
@@ -429,6 +546,16 @@ JSON:
 }}}}
 """
     
+
+
+    # Log Gemini prompt
+    gemini_prompt_log_type = f"gemini_prompt_{prompt_log_type_suffix}"
+    log_interaction_to_db(
+        user_id=req.user_id, session_id=req.session_id, seed_archetype_id=req.seme_id,
+        interaction_type=gemini_prompt_log_type,
+        interaction_data={'prompt': prompt.strip()} # Store full prompt
+    )
+
     # Preparazione del payload per Gemini
     payload = {
         "contents": [
@@ -449,12 +576,32 @@ JSON:
         
         if not data.get("candidates") or not data["candidates"][0].get("content") or not data["candidates"][0]["content"].get("parts"):
             print(f"[ERROR] Risposta API incompleta o malformata: {data}")
+            # Log error response from Gemini if possible
+            error_log_data = {"error": "Incomplete or malformed API response", "api_response": data}
+            log_interaction_to_db(
+                user_id=req.user_id, session_id=req.session_id, seed_archetype_id=req.seme_id,
+                interaction_type=f"gemini_error_response_{prompt_log_type_suffix}",
+                interaction_data=error_log_data
+            )
             raise HTTPException(status_code=500, detail="Risposta API incompleta o malformata da Gemini.")
 
         text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
         print(f"[DEBUG] Risposta raw da Gemini: {text}")
         
         parsed = extract_json_from_text(text)
+
+        # Log Gemini response
+        gemini_response_log_type = f"gemini_response_{prompt_log_type_suffix}"
+        log_data = {
+            "raw_response": text, "parsed_output": parsed.get("output"), "parsed_eco": parsed.get("eco"),
+            "parsed_frase_finale": parsed.get("frase_finale"), "sigillo": parsed.get("sigillo")
+        }
+        title_generated = parsed.get("frase_finale") if is_last_interaction_for_normal_seme else None
+        log_interaction_to_db(
+            user_id=req.user_id, session_id=req.session_id, seed_archetype_id=req.seme_id,
+            interaction_type=gemini_response_log_type, interaction_data=log_data,
+            seed_title_generated=title_generated
+        )
         
         output = parsed.get("output", text)
         if isinstance(output, list) and len(output) == 0:

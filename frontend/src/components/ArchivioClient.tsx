@@ -32,231 +32,249 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  EyeOff
+  EyeOff,
+  CopyPlus, // Icon for "Create Chapter"
+  ArchiveX // Icon for no sessions
 } from 'lucide-react';
-import { fetchCapitoli } from '@/lib/supabaseHelpers';
+// fetchCapitoli might be removed or adapted if this page no longer directly shows 'capitoli'
+// import { fetchCapitoli } from '@/lib/supabaseHelpers';
+import { useRouter } from 'next/navigation'; // For navigation
 
-type Capitolo = {
-  id: number;
+// Define types for raw seed interactions
+type RawInteractionStep = {
+  id: string; // UUID of the step itself
   user_id: string;
-  seme_id: string;
-  titolo: string;
-  icona: string;
-  testo: string;
-  eco: string[];
-  frase_finale: string;
-  timestamp: string;
+  session_id: string;
+  seed_archetype_id: string;
+  interaction_step: number;
+  interaction_type: string;
+  data: any; // JSONB, structure depends on interaction_type
+  created_at: string;
+  seed_title_generated: string | null;
+  status: string;
 };
 
-type EditingCapitolo = Capitolo & {
-  ecoText: string;
+type RawInteractionSessionSummary = {
+  sessionId: string;
+  seedArchetypeId: string;
+  seedTitleGenerated: string | null;
+  lastInteractionDate: string;
+  interactionCount: number;
 };
 
 export default function ArchivioClient({ user }: { user: User }) {
-  const [capitoli, setCapitoli] = useState<Capitolo[]>([]);
+  const router = useRouter();
+  const [rawSessions, setRawSessions] = useState<RawInteractionSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<EditingCapitolo | null>(null);
-  const [transferDialog, setTransferDialog] = useState<number | null>(null);
+  // const [authLoading, setAuthLoading] = useState(false); // Kept if needed for other auth actions
+  // Editing and transfer states might be removed or re-purposed if editing happens on a different page
+  // const [editingId, setEditingId] = useState<number | null>(null);
+  // const [editForm, setEditForm] = useState<EditingCapitolo | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [deleteDialog, setDeleteDialog] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
-  const [transferring, setTransferring] = useState<number | null>(null);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set()); // Use sessionId (string)
+  const [promotingToChapter, setPromotingToChapter] = useState<string | null>(null); // Store sessionId being promoted
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const loadCapitoli = useCallback(async (userId: string) => {
+  const loadRawInteractionSessions = useCallback(async (userId: string) => {
     try {
       setLoading(true);
-      const data = await fetchCapitoli(supabase, userId);
-      setCapitoli(data || []);
-    } catch (error) {
-      console.error('Error loading chapters:', error);
-      setError('Errore nel caricamento dei capitoli');
+      setError(null);
+      const { data, error: fetchError } = await supabase
+        .from('raw_seed_interactions')
+        .select('session_id, seed_archetype_id, seed_title_generated, created_at, interaction_step')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      if (!data) {
+        setRawSessions([]);
+        return;
+      }
+
+      // Process data to group by session_id and create summaries
+      const sessionsMap = new Map<string, RawInteractionSessionSummary>();
+      data.forEach(item => {
+        const existing = sessionsMap.get(item.session_id);
+        if (!existing) {
+          sessionsMap.set(item.session_id, {
+            sessionId: item.session_id,
+            seedArchetypeId: item.seed_archetype_id,
+            // Attempt to get a title; prefer one that's explicitly set, or from a later step.
+            // This simple logic takes the first non-null title encountered for the session during processing.
+            // A more robust way would be to specifically query for the title from the 'gemini_response_final' step.
+            seedTitleGenerated: item.seed_title_generated,
+            lastInteractionDate: item.created_at,
+            interactionCount: 1,
+          });
+        } else {
+          existing.interactionCount += 1;
+          if (new Date(item.created_at) > new Date(existing.lastInteractionDate)) {
+            existing.lastInteractionDate = item.created_at;
+          }
+          // If a later interaction has a title and the current one doesn't, update it.
+          if (item.seed_title_generated && !existing.seedTitleGenerated) {
+             existing.seedTitleGenerated = item.seed_title_generated;
+          }
+        }
+      });
+
+      const sortedSessions = Array.from(sessionsMap.values()).sort(
+        (a, b) => new Date(b.lastInteractionDate).getTime() - new Date(a.lastInteractionDate).getTime()
+      );
+      setRawSessions(sortedSessions);
+
+    } catch (err) {
+      console.error('Error loading raw interaction sessions:', err);
+      const supabaseError = err as any;
+      setError(`Errore nel caricamento dell'archivio: ${supabaseError.message || 'Errore sconosciuto'}`);
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase]); // Removed user from dependencies as it's passed directly
 
   useEffect(() => {
-    if (!user) return;
-    loadCapitoli(user.id);
-  }, [user, loadCapitoli]);
+    if (user?.id) {
+      loadRawInteractionSessions(user.id);
+    }
+  }, [user, loadRawInteractionSessions]);
 
-  const toggleCardExpansion = (capitoloId: number) => {
+  const toggleCardExpansion = (sessionId: string) => {
     const newExpanded = new Set(expandedCards);
-    if (newExpanded.has(capitoloId)) {
-      newExpanded.delete(capitoloId);
+    if (newExpanded.has(sessionId)) {
+      newExpanded.delete(sessionId);
     } else {
-      newExpanded.add(capitoloId);
+      newExpanded.add(sessionId);
     }
     setExpandedCards(newExpanded);
   };
 
-  const handleStartEdit = (capitolo: Capitolo) => {
-    setEditingId(capitolo.id);
-    setEditForm({ ...capitolo, ecoText: capitolo.eco.join('\n') });
-    // Espandi automaticamente la card quando si inizia a modificare
-    setExpandedCards(prev => new Set([...prev, capitolo.id]));
+  const handleViewSessionDetails = (sessionId: string) => {
+    // For now, just log. Later, navigate to a detail page:
+    // router.push(`/archivio/${sessionId}`);
+    console.log("View details for session:", sessionId);
+    // As a quick way to see details, we can expand the card or show a modal here too.
+    // For this step, clicking the card title area will serve as "view details" by expanding it.
+    toggleCardExpansion(sessionId);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditForm(null);
-  };
+  const handleCreateChapterFromSession = async (session: RawInteractionSessionSummary) => {
+    if (!user) return;
+    setPromotingToChapter(session.sessionId);
+    setError(null);
 
-  const handleSaveEdit = async () => {
-    if (!editForm || !user) return;
     try {
-      const updatedCapitolo = {
-        ...editForm,
-        eco: editForm.ecoText.split('\n').filter(line => line.trim() !== '')
-      };
-      const { error } = await supabase
+      // 1. Fetch all interactions for this session to get the final content
+      const { data: interactions, error: fetchError } = await supabase
+        .from('raw_seed_interactions')
+        .select('interaction_type, data, seed_title_generated')
+        .eq('user_id', user.id)
+        .eq('session_id', session.sessionId)
+        .order('interaction_step', { ascending: true }); // Important to get steps in order
+
+      if (fetchError) throw fetchError;
+      if (!interactions || interactions.length === 0) {
+        throw new Error("Nessuna interazione trovata per questa sessione.");
+      }
+
+      // 2. Extract title and final content
+      // Title is from summary, or find the last one set in the interactions.
+      let finalTitle = session.seedTitleGenerated;
+      let finalContent = "";
+
+      // Iterate backwards to find the last gemini_response with content and potentially a title
+      for (let i = interactions.length - 1; i >= 0; i--) {
+        const step = interactions[i];
+        if (step.interaction_type.startsWith('gemini_response_')) {
+          if (step.data?.parsed_output) {
+            finalContent = Array.isArray(step.data.parsed_output)
+              ? step.data.parsed_output.join('\n\n')
+              : step.data.parsed_output;
+          }
+          if (step.seed_title_generated && !finalTitle) { // Prioritize title from the step if summary didn't have one
+            finalTitle = step.seed_title_generated;
+          }
+          if (finalContent) break; // Found the main content
+        }
+      }
+      
+      if (!finalTitle) {
+         // Fallback title if none was explicitly generated/found
+        finalTitle = `Capitolo da ${session.seedArchetypeId}`;
+      }
+      if (!finalContent) {
+        // Fallback content if no Gemini output found (should not happen in normal flow)
+        finalContent = "Contenuto non ancora generato o sessione incompleta.";
+      }
+
+      // Fetch current max 'ordine' for this user's chapters
+      const { data: maxOrderData, error: maxOrderError } = await supabase
         .from('capitoli')
-        .update({
-          titolo: updatedCapitolo.titolo,
-          icona: updatedCapitolo.icona,
-          testo: updatedCapitolo.testo,
-          eco: updatedCapitolo.eco,
-          frase_finale: updatedCapitolo.frase_finale
-        })
-        .eq('id', editForm.id);
-      
-      if (error) {
-        console.error('Errore Supabase update:', error);
-        throw error;
+        .select('ordine')
+        .eq('user_id', user.id)
+        .is('ordine', 'not.null') // Ensure we only consider rows where ordine is set
+        .order('ordine', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (maxOrderError) {
+        // Log the error but proceed, newOrder will be 0 in this case
+        console.warn('Could not reliably determine max order for chapters, defaulting new chapter order. Error:', maxOrderError.message);
       }
-      
-      await loadCapitoli(user.id);
-      setEditingId(null);
-      setEditForm(null);
-      setError(null); // Pulisci errori precedenti
-    } catch (error) {
-      console.error('Errore durante il salvataggio:', error);
-      setError('Errore durante il salvataggio delle modifiche');
-    }
-  };
+      const newOrder = (maxOrderData?.ordine ?? -1) + 1;
 
-  const handleDelete = async (id: number) => {
-    if (!user) return;
-    try {
-      const { error } = await supabase.from('capitoli').delete().eq('id', id);
-      if (error) {
-        console.error('Errore Supabase delete:', error);
-        throw error;
-      }
-      
-      await loadCapitoli(user.id);
-      setDeleteDialog(null);
-      // Rimuovi la card dall'espansione se era espansa
-      setExpandedCards(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-      setError(null);
-    } catch (error) {
-      console.error('Errore durante eliminazione:', error);
-      setError('Errore durante l\'eliminazione del capitolo');
-    }
-  };
-
-  const handleTransferToLibro = async (capitolo: Capitolo) => {
-    if (!user) return;
-    
-    setTransferring(capitolo.id);
-    
-    try {
-      // Prepara i dati assicurandoci che siano nel formato corretto
-      const libroData = {
-        user_id: user.id,
-        seme_id: capitolo.seme_id,
-        titolo: capitolo.frase_finale || capitolo.titolo, // Usa frase_finale come titolo, fallback su titolo
-        sottotitolo: capitolo.eco && capitolo.eco.length > 0 ? capitolo.eco.join('\n') : '', // Gestisci eco vuoto
-        testo: capitolo.testo || '', // Assicurati che non sia null
-        timestamp: new Date().toISOString()
-      };
-
-      console.log('Dati da inserire in libro:', libroData);
-      
-      const { data, error } = await supabase
-        .from('libro')
-        .insert(libroData)
-        .select(); // Aggiungi select per vedere cosa viene inserito
-      
-      if (error) {
-        console.error('Errore Supabase insert libro:', error);
-        console.error('Dettagli errore:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
+      // 3. Create new chapter in 'capitoli' table
+      const { error: insertError } = await supabase
+        .from('capitoli')
+        .insert({
+          user_id: user.id,
+          titolo: finalTitle,
+          contenuto: finalContent,
+          seme_id: session.seedArchetypeId,
+          icona: '📖',
+          stato: 'bozza_da_archivio',
+          raw_interaction_session_id: session.sessionId,
+          eco: [],
+          frase_finale: finalTitle,
+          ordine: newOrder, // Set the new order
         });
-        throw error;
-      }
-      
-      console.log('Trasferimento completato con successo:', data);
-      setError(null);
-      
-      // Opzionale: mostra un feedback di successo
-      alert('Capitolo trasferito al libro con successo!');
-      
-    } catch (error: any) {
-      console.error('Errore durante il trasferimento:', error);
-      setError(`Errore durante il trasferimento: ${error.message || 'Errore sconosciuto'}`);
+
+      if (insertError) throw insertError;
+
+      // 4. Optionally, update status of raw_seed_interactions
+      // This is a nice-to-have, can be skipped if complex due to RLS or policies
+      // await supabase.from('raw_seed_interactions').update({ status: 'copied_to_capitoli' })
+      //   .eq('session_id', session.sessionId);
+
+      alert(`Capitolo "${finalTitle}" creato e pronto per la modifica nel Libro!`);
+      // Optionally, redirect to the book editing page or refresh current list
+      // router.push(`/libro?editingChapterId=${newChapterId}`); // if newChapterId is returned
+
+    } catch (err: any) {
+      console.error('Errore durante la creazione del capitolo:', err);
+      setError(`Errore creazione capitolo: ${err.message || 'Sconosciuto'}`);
     } finally {
-      setTransferring(null);
+      setPromotingToChapter(null);
     }
   };
 
-  const handleAddTestCapitolo = async () => {
-    if (!user) return;
-    try {
-      const { error } = await supabase.from('capitoli').insert({
-        user_id: user.id,
-        seme_id: `sem_${Date.now()}`,
-        titolo: 'Seme Germogliato',
-        icona: '🌱',
-        testo: 'Un pensiero che ha preso radice nella mente e ora cresce verso la luce.',
-        eco: [
-          'Riflesso nel silenzio mattutino',
-          'Eco di voci lontane',
-          'Sussurro del vento tra le foglie'
-        ],
-        frase_finale: 'E così il seme diventa albero.',
-        timestamp: new Date().toISOString()
-      });
-      
-      if (error) {
-        console.error('Errore Supabase insert:', error);
-        throw error;
-      }
-      
-      await loadCapitoli(user.id);
-      setError(null);
-    } catch (error) {
-      console.error('Errore durante aggiunta:', error);
-      setError('Errore durante l\'aggiunta del capitolo');
-    }
-  };
 
-  const filteredCapitoli = capitoli.filter(capitolo =>
-    capitolo.titolo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    capitolo.testo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    capitolo.eco.some(e => e.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Filtered sessions based on search term
+  const filteredSessions = rawSessions.filter(session =>
+    (session.seedArchetypeId && session.seedArchetypeId.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (session.seedTitleGenerated && session.seedTitleGenerated.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="text-sm text-muted-foreground">Caricamento archivio...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Caricamento archivio interazioni...</p>
       </div>
     );
   }
@@ -264,14 +282,14 @@ export default function ArchivioClient({ user }: { user: User }) {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-96">
+        <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-center text-destructive">Errore</CardTitle>
+            <CardTitle className="text-center text-destructive">Errore Archivio</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">{error}</p>
-            <Button variant="default" size="default" className="" onClick={() => window.location.reload()}>
-              Ricarica Pagina
+            <Button variant="default" onClick={() => user?.id && loadRawInteractionSessions(user.id)}>
+              Riprova Caricamento
             </Button>
           </CardContent>
         </Card>
@@ -282,25 +300,22 @@ export default function ArchivioClient({ user }: { user: User }) {
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold gradient-text">🌱 Archivio Semi Germogliati</h1>
+        <h1 className="text-4xl font-bold gradient-text">📜 Archivio Interazioni Grezze</h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          I tuoi pensieri che hanno preso vita e crescono nel giardino della memoria
+          Rivedi le tue sessioni di interazione con i semi e promuovile a capitoli del tuo libro.
         </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex-1 max-w-md">
+        <div className="flex-1 w-full sm:max-w-md">
           <Input
-            placeholder="🔍 Cerca nei tuoi semi..."
+            placeholder="🔍 Cerca per ID Seme o Titolo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full"
           />
         </div>
-        <Button onClick={handleAddTestCapitolo} className="gap-2" variant="default" size="default">
-          <Plus className="h-4 w-4" />
-          Nuovo Seme
-        </Button>
+         {/* Add Test button removed for now, focus on displaying raw interactions */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -308,216 +323,82 @@ export default function ArchivioClient({ user }: { user: User }) {
           <CardContent className="flex items-center gap-2 p-4">
             <Sparkles className="h-5 w-5 text-yellow-500" />
             <div>
-              <p className="text-sm text-muted-foreground">Semi Totali</p>
-              <p className="text-2xl font-bold">{capitoli.length}</p>
+              <p className="text-sm text-muted-foreground">Sessioni Totali</p>
+              <p className="text-2xl font-bold">{rawSessions.length}</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="flex items-center gap-2 p-4">
-            <Calendar className="h-5 w-5 text-blue-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Questo Mese</p>
-              <p className="text-2xl font-bold">
-                {capitoli.filter(c => 
-                  new Date(c.timestamp).getMonth() === new Date().getMonth()
-                ).length}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-2 p-4">
-            <BookOpen className="h-5 w-5 text-green-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Nel Libro</p>
-              <p className="text-2xl font-bold">-</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Other summary cards can be adapted or removed */}
       </div>
 
       <div className="space-y-4">
-        {filteredCapitoli.length === 0 ? (
+        {filteredSessions.length === 0 ? (
           <Card className="py-12">
             <CardContent className="text-center space-y-4">
-              <div className="text-6xl">🌱</div>
-              <h3 className="text-xl font-semibold">Nessun seme germogliato</h3>
+              <ArchiveX className="h-16 w-16 text-muted-foreground mx-auto" />
+              <h3 className="text-xl font-semibold">Nessuna interazione trovata</h3>
               <p className="text-muted-foreground">
                 {searchTerm 
-                  ? 'Nessun risultato per la ricerca attuale'
-                  : 'I tuoi primi semi stanno ancora crescendo...'}
+                  ? 'Nessun risultato per la ricerca attuale.'
+                  : 'Non hai ancora sessioni di interazione registrate. Inizia un dialogo con un seme!'}
               </p>
             </CardContent>
           </Card>
         ) : (
-          filteredCapitoli.map((capitolo) => {
-            const isExpanded = expandedCards.has(capitolo.id);
-            const isEditing = editingId === capitolo.id;
+          filteredSessions.map((session) => {
+            const isExpanded = expandedCards.has(session.sessionId);
+            // const isEditing = editingId === session.id; // Editing logic to be re-evaluated for raw sessions
             
             return (
-              <Card key={capitolo.id} className="overflow-hidden transition-all duration-200">
-                <CardHeader className="pb-3">
+              <Card key={session.sessionId} className="overflow-hidden transition-all duration-200">
+                <CardHeader className="pb-3 cursor-pointer" onClick={() => handleViewSessionDetails(session.sessionId)}>
                   <div className="flex items-start justify-between">
-                    <CardTitle className="flex items-center gap-3 flex-1">
-                      {isEditing ? (
-                        <div className="flex items-center gap-2 flex-1">
-                          <Input
-                            value={editForm?.icona || ''}
-                            onChange={(e) => setEditForm(prev => prev ? {...prev, icona: e.target.value} : null)}
-                            className="w-16 text-center"
-                            placeholder="🌱"
-                          />
-                          <Input
-                            value={editForm?.titolo || ''}
-                            onChange={(e) => setEditForm(prev => prev ? {...prev, titolo: e.target.value} : null)}
-                            className="flex-1"
-                            placeholder="Titolo del capitolo"
-                          />
-                        </div>
-                      ) : (
-                        <div 
-                          className="flex items-center gap-3 cursor-pointer flex-1 group"
-                          onClick={() => toggleCardExpansion(capitolo.id)}
-                        >
-                          <span className="text-2xl">{capitolo.icona}</span>
-                          <span className="group-hover:text-primary transition-colors">
-                            {capitolo.titolo}
-                          </span>
-                          <div className="ml-auto flex items-center gap-2">
-                            <Badge variant="secondary" className="gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(capitolo.timestamp).toLocaleDateString()}
-                            </Badge>
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </div>
-                      )}
+                    <CardTitle className="flex items-center gap-3 flex-1 group">
+                      {/* Icon can be generic or mapped from seedArchetypeId */}
+                      <span className="text-2xl">💬</span>
+                      <span className="group-hover:text-primary transition-colors">
+                        {session.seedTitleGenerated || session.seedArchetypeId}
+                      </span>
+                      <div className="ml-auto flex items-center gap-2">
+                        <Badge variant="outline">Interazioni: {session.interactionCount}</Badge>
+                        <Badge variant="secondary" className="gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(session.lastInteractionDate).toLocaleDateString()}
+                        </Badge>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
                     </CardTitle>
-
-                    {!isEditing && (
-                      <div className="flex items-center gap-1 ml-4">
-                        <Button size="sm" variant="outline" className="" onClick={() => handleStartEdit(capitolo)}>
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-
-                        <Button 
-                          size="sm" 
-                          variant="default" 
-                          className="gap-1"
-                          onClick={() => handleTransferToLibro(capitolo)}
-                          disabled={transferring === capitolo.id}
-                        >
-                          {transferring === capitolo.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <BookOpen className="h-4 w-4" />
-                          )}
-                          Al Libro
-                        </Button>
-
-                        <Dialog open={deleteDialog === capitolo.id} onOpenChange={(open) => !open && setDeleteDialog(null)}>
-                          <DialogTrigger asChild>
-                            <Button size="sm" variant="destructive" className="" onClick={() => setDeleteDialog(capitolo.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Eliminare il capitolo?</DialogTitle>
-                            </DialogHeader>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Questa azione non pu&ograve; essere annullata. Il capitolo &quot;{capitolo.titolo}&quot; sar&agrave; eliminato permanentemente.
-                            </p>
-                            <DialogFooter className="gap-2">
-                              <Button variant="outline" size="default" className="" onClick={() => setDeleteDialog(null)}>
-                                Annulla
-                              </Button>
-                              <Button variant="destructive" size="default" className="" onClick={() => handleDelete(capitolo.id)}>
-                                Elimina
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    )}
-
-                    {isEditing && (
-                      <div className="flex gap-1 ml-4">
-                        <Button size="sm" variant="default" className="" onClick={handleSaveEdit}>
-                          <Save className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="" onClick={handleCancelEdit}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </CardHeader>
 
-                {(isExpanded || isEditing) && (
+                {isExpanded && (
                   <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
-                    {isEditing ? (
-                      <div className="space-y-4">
-                        <Textarea
-                          value={editForm?.testo || ''}
-                          onChange={(e) => setEditForm(prev => prev ? {...prev, testo: e.target.value} : null)}
-                          placeholder="Contenuto del capitolo..."
-                          rows={4}
-                        />
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Echi (uno per riga)</label>
-                          <Textarea
-                            value={editForm?.ecoText || ''}
-                            onChange={(e) => setEditForm(prev => prev ? {...prev, ecoText: e.target.value} : null)}
-                            placeholder="Primo eco&#10;Secondo eco&#10;Terzo eco..."
-                            rows={3}
-                          />
-                        </div>
-                        <Input
-                          value={editForm?.frase_finale || ''}
-                          onChange={(e) => setEditForm(prev => prev ? {...prev, frase_finale: e.target.value} : null)}
-                          placeholder="Frase finale..."
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <p className="text-foreground leading-relaxed">{capitolo.testo}</p>
-
-                        {capitolo.eco.length > 0 && (
-                          <div>
-                            <Separator className="mb-3" />
-                            <div className="space-y-2">
-                              <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                                Echi
-                              </h4>
-                              <ScrollArea className="max-h-32">
-                                <ul className="space-y-1">
-                                  {capitolo.eco.map((eco, index) => (
-                                    <li key={index} className="flex items-start gap-2 text-sm italic">
-                                      <span className="text-muted-foreground mt-0.5">•</span>
-                                      <span className="text-muted-foreground">{eco}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </ScrollArea>
-                            </div>
-                          </div>
-                        )}
-
-                        {capitolo.frase_finale && (
-                          <div className="pt-4 border-t">
-                            <p className="text-right italic text-primary font-medium">
-                              &quot;{capitolo.frase_finale}&quot;
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <p className="text-sm text-muted-foreground">
+                      ID Sessione: {session.sessionId} <br />
+                      Archetipo Seme: {session.seedArchetypeId}
+                    </p>
+                    <Button
+                      onClick={() => handleCreateChapterFromSession(session)}
+                      disabled={promotingToChapter === session.sessionId}
+                      variant="default"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      {promotingToChapter === session.sessionId ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CopyPlus className="h-4 w-4" />
+                      )}
+                      Crea Capitolo da questa Interazione
+                    </Button>
+                    {/* Detailed steps would be fetched and shown here or on a new page */}
+                    <p className="text-xs text-center italic mt-2">
+                      (La visualizzazione dettagliata dei passaggi dell'interazione sarà implementata qui o in una pagina dedicata.)
+                    </p>
                   </CardContent>
                 )}
               </Card>

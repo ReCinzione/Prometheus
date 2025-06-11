@@ -36,3 +36,11 @@ typing_extensions==4.13.2
 uritemplate==4.1.1
 urllib3==2.4.0
 uvicorn==0.34.3
+supabase==2.5.0
+# Add supabase client, ensure to pick a recent stable version. 2.5.0 is an example.
+# Check PyPI for the latest version of supabase-py if needed.
+gotrue==2.5.0
+# Dependencies for supabase-py
+httpx==0.27.0
+# httpx is often a dependency of modern Python HTTP clients like supabase-py
+# Other potential dependencies like pydantic for supabase-py might already be satisfied.

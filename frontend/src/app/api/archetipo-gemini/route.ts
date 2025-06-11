@@ -3,21 +3,43 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { frasi, descrizione, nome } = body;
+    const {
+      frasi,
+      descrizione,
+      nome,
+      session_id, // Added
+      user_id,    // Added
+      interaction_number // Expecting this from frontend now
+    } = body;
+
+    if (!session_id || !user_id || typeof interaction_number === 'undefined') {
+      return NextResponse.json({ error: 'session_id, user_id, and interaction_number are required' }, { status: 400 });
+    }
 
     // Se frasi è già una stringa, usala, altrimenti concatena
     const userInput = Array.isArray(frasi) ? frasi.join(' • ') : frasi;
-    const semeId = `archetipo_${nome.toLowerCase().replace(/\s+/g, '_')}`;
+    const semeId = `archetipo_${nome.toLowerCase().replace(/\s+/g, '_')}`; // This seems specific to "archetipo" seeds
+
+    // TODO: The backend's `req.seme_id` is used as `seed_archetype_id`.
+    // Ensure this `semeId` is what's intended for general seed logging, or adapt if different seeds have different ID schemes.
+    // For now, assuming `nome` (e.g. "Seme 01") is transformed into `archetipo_seme_01` and used.
+    // The backend also expects `is_eco_request` and `history` etc.
 
     const payload = {
       user_input: userInput,
-      seme_id: semeId,
-      is_eco_request: true,
-      history: [],
-      interaction_number: 0,
-      last_assistant_question: null,
-      descrizione, // opzionale, se vuoi passarla al backend Python
-      nome,        // opzionale, se vuoi passarla al backend Python
+      seme_id: semeId, // This is used as seed_archetype_id in backend
+      is_eco_request: body.is_eco_request || false, // Pass through or default
+      history: body.history || [],                 // Pass through or default
+      interaction_number: interaction_number,      // Pass through
+      last_assistant_question: body.last_assistant_question || null, // Pass through
+
+      // Add new IDs for logging
+      session_id: session_id,
+      user_id: user_id,
+
+      // Optional fields from original body, pass them if they exist
+      ...(descrizione && { descrizione }),
+      ...(nome && { nome_archetipo: nome }), // Renamed to avoid conflict if backend also has a 'nome'
     };
 
     // Usa la variabile d'ambiente o fallback su localhost per lo sviluppo

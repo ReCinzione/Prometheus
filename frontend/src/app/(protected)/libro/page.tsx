@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useReactToPrint } from 'react-to-print';
 import CoverUploadClient from './CoverUploadClient'; // Import the new component
 import { Card, CardContent } from '@/components/ui/card'; // For styling
+import { Badge } from '@/components/ui/badge'; // Added missing Badge import
 import { Image as ImageIcon, BookHeart } from 'lucide-react'; // Icons
 import { createBrowserClient } from '@supabase/ssr';
 import { User } from '@supabase/supabase-js';

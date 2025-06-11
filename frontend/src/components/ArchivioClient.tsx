@@ -107,7 +107,7 @@ export default function ArchivioClient({ user }: { user: User }) {
         .select('raw_interaction_session_id, stato')
         .eq('user_id', userId)
         .in('stato', ['nel_libro', 'archivio_cancellato'])
-        .isnot('raw_interaction_session_id', null);
+        .not('raw_interaction_session_id', 'is', null); // Corrected syntax
 
       if (chaptersError) throw chaptersError;
 
@@ -329,7 +329,7 @@ export default function ArchivioClient({ user }: { user: User }) {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">{error}</p>
-            <Button variant="default" onClick={() => user?.id && loadRawInteractionSessions(user.id)}>
+            <Button variant="default" size="default" className="" onClick={() => user?.id && loadRawInteractionSessions(user.id)}>
               Riprova Caricamento
             </Button>
           </CardContent>

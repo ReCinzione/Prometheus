@@ -218,7 +218,6 @@ export default function ScriviPage() {
         body: JSON.stringify({ 
           frasi: userMessage.content, // Matches 'frasi' in API route
           nome: selected?.nome || semeId, // Pass 'nome' for semeId construction in API route
-          descrizione: selected?.descrizione, // Optional: pass description if available/needed
 
           // History per il backend Python (diverso da `messages` state che ha più dettagli)
           // Il backend Python si aspetta una lista di liste: [type, content_string]
@@ -250,7 +249,7 @@ export default function ScriviPage() {
         eco: data.eco,
         fraseFinale: data.frase_finale,
         timestamp: new Date(),
-        fase: isFirstInteraction ? 'prima' : 'seconda'
+        fase: isFirstNormalInteraction ? 'prima' : 'seconda'
       };
 
       setMessages(prev => [...prev, assistantResponse]);

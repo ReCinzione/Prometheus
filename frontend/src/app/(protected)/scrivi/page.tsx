@@ -266,6 +266,10 @@ export default function ScriviPage() {
 
       const data = await response.json();
 
+      // AGGIUNGI QUESTO LOG DI DEBUG
+      console.log("DEBUG: ScriviPage - Dati ricevuti da /api/archetipo-gemini:", data);
+      // FINE LOG DI DEBUG
+
       const assistantResponse: ChatMessage = {
         type: 'assistant',
         content: data.output,

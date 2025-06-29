@@ -136,6 +136,14 @@ export default function ScriviPage() {
   const handleSendMessage = async () => {
     if (!inputText.trim() || loading || fase === 'completato' || (alreadyWritten && !isSeme99)) return;
 
+    // AGGIUNGI QUESTO BLOCCO DI CONTROLLO
+    if (!userId || !sessionId) {
+      setError("Errore critico: ID Utente o ID Sessione non sono stati inizializzati. Per favore, ricarica la pagina o prova a selezionare nuovamente il seme.");
+      setLoading(false); // Assicurati che loading sia false se esci qui
+      return;
+    }
+    // FINE BLOCCO DI CONTROLLO
+
     const userMessage: ChatMessage = {
       type: 'user',
       content: inputText,

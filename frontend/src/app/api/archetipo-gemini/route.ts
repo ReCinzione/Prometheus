@@ -36,10 +36,6 @@ export async function POST(req: Request) {
       // Add new IDs for logging
       session_id: session_id,
       user_id: user_id,
-
-      // Optional fields from original body, pass them if they exist
-      ...(descrizione && { descrizione }),
-      ...(nome && { nome_archetipo: nome }), // Renamed to avoid conflict if backend also has a 'nome'
     };
 
     // Usa la variabile d'ambiente o fallback su localhost per lo sviluppo

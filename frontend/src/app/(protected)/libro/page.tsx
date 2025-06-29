@@ -81,7 +81,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
       // Fetch book for the user. Assuming one book per user for now, or the first one.
       // In a multi-book scenario, you'd need a way to select which book.
       let { data: bookData, error: bookError } = await supabase
-        .from('libri')
+        .from('libro')
         .select('*')
         .eq('user_id', currentUser.id)
         .maybeSingle(); // Use maybeSingle if one book per user, or order/limit(1) for first
@@ -92,7 +92,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
 
       if (!bookData && !bookError) { // No book exists, create one
         const { data: newBook, error: createError } = await supabase
-          .from('libri')
+          .from('libro')
           .insert({ user_id: currentUser.id, title: 'Il Mio Libro Vivente' }) // Default title
           .select()
           .single();
@@ -110,8 +110,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
         .from('capitoli')
         .select('*')
         .eq('user_id', currentUser.id)
-        .in('stato', ['nel_libro', 'bozza_da_archivio']) // Filter by relevant statuses
-        .order('ordine', { ascending: true });
+        .in('stato', ['nel_libro', 'bozza_da_archivio']); // Filter by relevant statuses
 
       if (chapterError) {
         console.error('Errore nel recupero dei capitoli:', chapterError);

@@ -175,7 +175,15 @@ export default function ScriviPage() {
             user_id: userId,
             session_id: sessionId,
             interaction_number: currentInteractionNumForSeme99, // Seme 99 is always first interaction in this context
-            history: [], // Seme 99 doesn't use history from this page
+            history: messages.map(m => {
+              let contentString = ""; // Default a stringa vuota
+              if (Array.isArray(m.content)) {
+                contentString = m.content.filter(item => item != null).join('\n\n');
+              } else if (m.content != null) {
+                contentString = String(m.content);
+              }
+              return [m.type, contentString];
+            }),
             last_assistant_question: null
           }),
         });
@@ -231,10 +239,15 @@ export default function ScriviPage() {
 
           // History per il backend Python (diverso da `messages` state che ha più dettagli)
           // Il backend Python si aspetta una lista di liste: [type, content_string]
-          history: messages.map(m => [
-            m.type, 
-            Array.isArray(m.content) ? m.content.join('\n\n') : m.content
-          ]),
+          history: messages.map(m => {
+            let contentString = ""; // Default a stringa vuota
+            if (Array.isArray(m.content)) {
+              contentString = m.content.filter(item => item != null).join('\n\n');
+            } else if (m.content != null) {
+              contentString = String(m.content);
+            }
+            return [m.type, contentString];
+          }),
           is_first_interaction: isFirstNormalInteraction, // Usato dal backend Python per la logica del prompt
           last_assistant_question: lastAssistantQuestion,
 

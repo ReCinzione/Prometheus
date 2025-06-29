@@ -296,22 +296,51 @@ export default function ScriviPage() {
   };
 
   const handleAutoSave = async (lastMessage: ChatMessage) => {
-    if (!userId || !selected) return;
+    if (!userId || !selected) {
+      console.warn("DEBUG: handleAutoSave chiamato ma userId o selected mancano.", {
+        userIdExists: !!userId,
+        selectedExists: !!selected,
+        selectedId: selected?.id
+      });
+      return;
+    }
+
+    // LOG DI DEBUG AGGIUNTO
+    console.log("DEBUG: handleAutoSave - Dati ricevuti per il salvataggio:", {
+      userId: userId,
+      semeId: selected.id,
+      titoloDaSalvare: selected.nome, // Titolo del capitolo preso dal nome del seme
+      iconaDaSalvare: selected.icona,
+      rawLastMessageContent: lastMessage.content,
+      rawLastMessageEco: lastMessage.eco,
+      rawLastMessageFraseFinale: lastMessage.fraseFinale
+    });
+
+    const textToSave = Array.isArray(lastMessage.content)
+      ? lastMessage.content.filter(item => item != null).join('\n\n')
+      : String(lastMessage.content ?? "");
+
+    const ecoToSave = lastMessage.eco || [];
+    const fraseFinaleToSave = lastMessage.fraseFinale || '';
+
+    // LOG DI DEBUG AGGIUNTO
+    console.log("DEBUG: handleAutoSave - Dati processati pronti per salvaCapitolo:", {
+      textToSave,
+      ecoToSave,
+      fraseFinaleToSave
+    });
+    // FINE LOG DI DEBUG
 
     setSalvataggioStatus('saving');
     try {
-      const textToSave = Array.isArray(lastMessage.content) 
-        ? lastMessage.content.join('\n\n') 
-        : lastMessage.content;
-
       await salvaCapitolo(supabase, {
         userId,
         semeId: selected.id,
         titolo: selected.nome,
         icona: selected.icona,
         testo: textToSave,
-        eco: lastMessage.eco || [],
-        fraseFinale: lastMessage.fraseFinale || '',
+        eco: ecoToSave,
+        fraseFinale: fraseFinaleToSave,
       });
       setSalvataggioStatus('saved');
       setTimeout(() => setSalvataggioStatus('idle'), 3000); 

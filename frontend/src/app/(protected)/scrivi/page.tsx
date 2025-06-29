@@ -225,7 +225,9 @@ export default function ScriviPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           frasi: userMessage.content, // Matches 'frasi' in API route
-          nome: selected?.nome || semeId, // Pass 'nome' for semeId construction in API route
+          // nome: selected?.nome || semeId, // Rimuovo questa riga
+          effective_seme_id: semeId, // 'semeId' qui è quello preso dai searchParams (es. "sem_04")
+          readable_seme_name: selected?.nome,
 
           // History per il backend Python (diverso da `messages` state che ha più dettagli)
           // Il backend Python si aspetta una lista di liste: [type, content_string]

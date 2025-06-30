@@ -449,7 +449,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                           >
                             <div className="flex items-center gap-3">
                               <GripVertical className="h-5 w-5 text-muted-foreground" />
-                              <span>{chapter.ordine + 1}. {chapter.titolo}</span>
+                              <span>{chapter.titolo}</span>
                               <Badge variant={chapter.stato === 'nel_libro' ? 'default' :
                                              (chapter.stato === 'bozza_da_archivio' ? 'outline' : 'secondary')}>
                                 {chapter.stato}

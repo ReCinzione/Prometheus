@@ -61,21 +61,17 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    // Fallback: se non c'è titolo/testo, prova a ricavare da output/frase_finale
-    if (!data.titolo || !data.testo) {
-      let titolo = '';
-      let testo = '';
-      if (data.frase_finale) titolo = data.frase_finale;
-      if (Array.isArray(data.output)) testo = data.output.join(' ');
-      else if (typeof data.output === 'string') testo = data.output;
-      // Se almeno uno dei due è presente, restituisci in formato atteso
-      if (titolo && testo) {
-        return NextResponse.json({ titolo, testo });
-      }
-      // Altrimenti errore
-      return NextResponse.json({ error: 'Risposta AI non valida', raw: data }, { status: 500 });
+    // Log per vedere cosa arriva dal backend Python
+    console.log("[API Route /api/archetipo-gemini] Dati ricevuti dal backend Python:", JSON.stringify(data, null, 2));
+
+    // Controllo essenziale che i campi attesi dal frontend (ScriviPage) siano presenti.
+    // Il backend Python (ChatResponse) dovrebbe garantirli se la risposta è 200 OK.
+    if (data.output === undefined || data.eco === undefined || data.frase_finale === undefined) {
+      console.error("[API Route /api/archetipo-gemini] ERRORE: Risposta dal backend Python non contiene i campi attesi (output, eco, frase_finale). Dati ricevuti:", JSON.stringify(data, null, 2));
+      return NextResponse.json({ error: 'Risposta interna dal server AI non valida o incompleta.', received_data: data }, { status: 500 });
     }
 
+    // Inoltra direttamente la risposta completa del backend Python al client
     return NextResponse.json(data);
   } catch (error) {
     console.error('Errore nella route /api/archetipo-gemini:', error);

@@ -55,7 +55,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
 
   // State for editing and deleting chapters
   const [editingChapter, setEditingChapter] = useState<CapitoloType | null>(null);
-  const [editFormData, setEditFormData] = useState<{ titolo: string; contenuto: string }>({ titolo: '', contenuto: '' });
+  const [editFormData, setEditFormData] = useState<{ titolo: string; testo: string }>({ titolo: '', testo: '' });
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [deletingChapter, setDeletingChapter] = useState<CapitoloType | null>(null);
@@ -148,14 +148,14 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
 
   const handleOpenEditModal = (chapter: CapitoloType) => {
     setEditingChapter(chapter);
-    setEditFormData({ titolo: chapter.titolo, contenuto: chapter.contenuto });
+    setEditFormData({ titolo: chapter.titolo, testo: chapter.testo });
     setShowEditModal(true);
   };
 
   const handleCloseEditModal = () => {
     setShowEditModal(false);
     setEditingChapter(null);
-    setEditFormData({ titolo: '', contenuto: '' });
+    setEditFormData({ titolo: '', testo: '' });
   };
 
   const handleSaveChapterChanges = async () => {
@@ -166,7 +166,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
         .from('capitoli')
         .update({
           titolo: editFormData.titolo,
-          contenuto: editFormData.contenuto,
+          testo: editFormData.testo,
           updated_at: new Date().toISOString()
         })
         .eq('id', editingChapter.id)
@@ -518,9 +518,9 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
               <div className="grid grid-cols-4 items-start gap-4">
                 <label htmlFor="edit-content" className="text-right mt-2">Contenuto</label>
                 <Textarea
-                  id="edit-content"
-                  value={editFormData.contenuto}
-                  onChange={(e) => setEditFormData(prev => ({...prev, contenuto: e.target.value}))}
+                  id="edit-content" // L'ID HTML può rimanere 'edit-content' se vuoi
+                  value={editFormData.testo}
+                  onChange={(e) => setEditFormData(prev => ({...prev, testo: e.target.value}))}
                   className="col-span-3 min-h-[200px]"
                   rows={10}
                 />

@@ -10,8 +10,8 @@ export interface Capitolo {
   id: string; // or number, depending on your schema (UUIDs are often strings)
   user_id: string;
   titolo: string;
-  contenuto: string;
-  ordine: number;
+  testo: string; // Modificato da 'contenuto'
+  // ordine: number; // RIMOSSO
   stato: string;
   seme_id?: string | null; // From which seed it originated, if any
   icona?: string | null; // Icon for the chapter
@@ -97,7 +97,7 @@ const LibroVivente = forwardRef<HTMLDivElement, LibroViventeProps>(
 
           <div className="prose prose-lg max-w-none">
             <div className="text-gray-800 leading-relaxed whitespace-pre-line text-justify">
-              {chapter.contenuto}
+              {chapter.testo} {/* Modificato da chapter.contenuto */}
             </div>
           </div>
 

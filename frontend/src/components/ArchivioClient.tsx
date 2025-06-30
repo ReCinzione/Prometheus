@@ -268,14 +268,14 @@ export default function ArchivioClient({ user }: { user: User }) {
         .insert({
           user_id: user.id,
           titolo: finalTitle,
-          contenuto: finalContent,
+          testo: finalContent, // MODIFICATO
           seme_id: session.seedArchetypeId,
           icona: '📖',
           stato: 'bozza_da_archivio',
           raw_interaction_session_id: session.sessionId,
           eco: [],
-          frase_finale: finalTitle,
-          ordine: newOrder, // Set the new order
+          frase_finale: finalTitle
+          // 'ordine: newOrder' è stato RIMOSSO
         });
 
       if (insertError) throw insertError;

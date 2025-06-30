@@ -226,7 +226,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     try {
       // Attempt to get a more descriptive name, fallback to email part or generic
       const authorName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Autore Anonimo';
-      const preview = chapter.contenuto.substring(0, 200) + (chapter.contenuto.length > 200 ? '...' : '');
+      const preview = chapter.testo.substring(0, 200) + (chapter.testo.length > 200 ? '...' : '');
 
       const { error } = await supabase
         .from('shared_chapters')

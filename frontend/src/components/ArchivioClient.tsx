@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation'; // For navigation
 import { Capitolo as CapitoloType } from '@/app/(protected)/libro/LibroVivente'; // Import CapitoloType
+import { toast } from "sonner";
 
 // Remove RawInteractionStep and RawInteractionSessionSummary types (or comment out)
 /*

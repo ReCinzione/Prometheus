@@ -13,11 +13,14 @@ export interface Capitolo {
   testo: string; // Modificato da 'contenuto'
   // ordine: number; // RIMOSSO
   stato: string;
-  seme_id?: string | null; // From which seed it originated, if any
-  icona?: string | null; // Icon for the chapter
-  eco?: string[] | null; // Ecos, if stored with chapter
-  frase_finale?: string | null; // Concluding phrase, if stored
-  // Add any other fields from 'capitoli' table that you want to use
+  seme_id?: string | null;
+  icona?: string | null;
+  eco?: string[] | null;
+  frase_finale?: string | null;
+  timestamp?: string; // Aggiunta per la data di creazione/modifica
+  created_at?: string; // Aggiunta per compatibilità se usata altrove, o da mappare da timestamp
+  updated_at?: string; // Aggiunta per compatibilità se usata altrove, o da mappare da timestamp
+  raw_interaction_session_id?: string | null; // Campo per ID sessione grezza
 }
 
 interface LibroViventeProps {

@@ -78,7 +78,7 @@ export default function ArchivioClient({ user }: { user: User }) {
         .select('*') // Select all fields, or specific ones matching CapitoloType + created_at/updated_at
         .eq('user_id', userId)
         .in('stato', ['bozza_in_archivio', 'promosso_al_libro'])
-        .order('created_at', { ascending: false }); // Assuming 'created_at' for ordering
+        .order('timestamp', { ascending: false }); // Ordina per 'timestamp'
 
       if (fetchError) throw fetchError;
 
@@ -225,10 +225,10 @@ export default function ArchivioClient({ user }: { user: User }) {
                 {isPromoted && <Badge variant="default" className="bg-green-600 hover:bg-green-700">Nel Libro</Badge>}
                 {!isPromoted && <Badge variant="outline">Bozza ({chapter.stato})</Badge>}
                 {chapter.seme_id && <Badge variant="secondary">{chapter.seme_id}</Badge>}
-                {chapter.created_at && (
+                {(chapter.timestamp || chapter.created_at) && ( // Controlla entrambi per sicurezza o solo timestamp
                   <Badge variant="outline" className="gap-1">
                     <Calendar className="h-3 w-3" />
-                    {new Date(chapter.created_at).toLocaleDateString()}
+                    {new Date(chapter.timestamp || chapter.created_at!).toLocaleDateString()}
                   </Badge>
                 )}
                 {isExpanded ? (

@@ -37,7 +37,7 @@ import {
   ArchiveX // Icon for no sessions
 } from 'lucide-react';
 import { useRouter } from 'next/navigation'; // For navigation
-import { Capitolo as CapitoloType } from '../(protected)/libro/LibroVivente'; // Import CapitoloType
+import { Capitolo as CapitoloType } from '@/app/(protected)/libro/LibroVivente'; // Import CapitoloType
 
 // Remove RawInteractionStep and RawInteractionSessionSummary types (or comment out)
 /*

@@ -27,14 +27,20 @@ export async function salvaCapitolo(
     testo,
     eco,
     fraseFinale,
+    // NUOVI CAMPI DA AGGIUNGERE AI PARAMETRI DELLA FUNZIONE:
+    stato,
+    rawInteractionSessionId
   }: {
     userId: string;
     semeId: string;
-    titolo: string;
+    titolo: string; // Titolo del capitolo (che sarà la frase_finale dell'AI)
     icona: string;
-    testo: string;
+    testo: string;  // Contenuto principale del capitolo
     eco: string[];
-    fraseFinale: string;
+    fraseFinale: string; // Frase finale dell'AI (che stiamo usando anche come titolo)
+    // NUOVE PROPRIETÀ DEL TIPO:
+    stato: string;
+    rawInteractionSessionId: string | null; // Può essere null se non c'è sessione grezza associata
   }
 ) {
   const { data, error } = await supabase
@@ -43,11 +49,14 @@ export async function salvaCapitolo(
       {
         user_id: userId,
         seme_id: semeId,
-        titolo,
-        icona,
-        testo,
-        eco,
-        frase_finale: fraseFinale,
+        titolo: titolo, // Titolo del capitolo (frase_finale dell'AI)
+        icona: icona,
+        testo: testo,   // Contenuto principale
+        eco: eco,
+        frase_finale: fraseFinale, // Frase finale dell'AI (stessa del titolo in questo caso)
+        // NUOVI CAMPI DA INSERIRE:
+        stato: stato,
+        raw_interaction_session_id: rawInteractionSessionId,
       },
     ]);
 

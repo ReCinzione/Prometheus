@@ -338,13 +338,17 @@ export default function ScriviPage() {
     setSalvataggioStatus('saving');
     try {
       await salvaCapitolo(supabase, {
-        userId,
+        userId: userId,
         semeId: selected.id,
-        titolo: selected.nome,
+        titolo: fraseFinaleToSave, // Usa la frase_finale dell'AI (già in fraseFinaleToSave) come titolo del capitolo
         icona: selected.icona,
-        testo: textToSave,
-        eco: ecoToSave,
-        fraseFinale: fraseFinaleToSave,
+        testo: textToSave,         // Contenuto principale dall'AI
+        eco: ecoToSave,            // Eco dall'AI
+        fraseFinale: fraseFinaleToSave, // Frase finale dell'AI (passata anche come campo frase_finale)
+
+        // NUOVI CAMPI:
+        stato: 'bozza_in_archivio', // Stato di default per i capitoli salvati automaticamente
+        rawInteractionSessionId: sessionId // L'ID della sessione di interazione grezza
       });
       setSalvataggioStatus('saved');
       setTimeout(() => setSalvataggioStatus('idle'), 3000); 

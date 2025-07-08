@@ -12,7 +12,7 @@ export interface Capitolo {
   titolo: string;
   testo: string; // Modificato da 'contenuto'
   // ordine: number; // RIMOSSO
-  stato: string;
+  stato?: string; // RESO OPZIONALE
   seme_id?: string | null; // From which seed it originated, if any
   icona?: string | null; // Icon for the chapter
   eco?: string[] | null; // Ecos, if stored with chapter

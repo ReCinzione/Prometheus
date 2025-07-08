@@ -192,10 +192,10 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
 
   const handleCoverUploadSuccess = (newCoverUrl: string) => {
     setCurrentBook(prevBook => prevBook ? { ...prevBook, cover_image_url: newCoverUrl, updated_at: new Date().toISOString() } : null);
-    setShowCoverUpload(false); // Optionally close the upload UI
+    setShowCoverUpload(false);
   };
 
-  const handleOpenEditModal = (chapter: CapitoloType) => {
+  const handleOpenEditModal = (chapter: LibroCapitolo) => { // MODIFICATO: parametro ora è LibroCapitolo
     setEditingChapter(chapter);
     setEditFormData({ titolo: chapter.titolo, testo: chapter.testo });
     setShowEditModal(true);
@@ -240,7 +240,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     }
   };
 
-  const handleOpenDeleteModal = (chapter: CapitoloType) => {
+  const handleOpenDeleteModal = (chapter: LibroCapitolo) => { // MODIFICATO: parametro ora è LibroCapitolo
     setDeletingChapter(chapter);
     setShowDeleteModal(true);
   };

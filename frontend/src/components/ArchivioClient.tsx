@@ -33,289 +33,205 @@ import {
   ChevronUp,
   Eye,
   EyeOff,
-  CopyPlus, // Icon for "Create Chapter"
+  SendToBack, // Icon for "Manda al Libro"
   ArchiveX // Icon for no sessions
 } from 'lucide-react';
-// fetchCapitoli might be removed or adapted if this page no longer directly shows 'capitoli'
-// import { fetchCapitoli } from '@/lib/supabaseHelpers';
 import { useRouter } from 'next/navigation'; // For navigation
 
-// Define types for raw seed interactions
-type RawInteractionStep = {
-  id: string; // UUID of the step itself
-  user_id: string;
-  session_id: string;
-  seed_archetype_id: string;
-  interaction_step: number;
-  interaction_type: string;
-  data: any; // JSONB, structure depends on interaction_type
+// Interfaccia per un capitolo (bozza o promosso)
+export interface Capitolo {
+  id: number;
   created_at: string;
-  seed_title_generated: string | null;
-  status: string;
-};
-
-type RawInteractionSessionSummary = {
-  sessionId: string;
-  seedArchetypeId: string;
-  seedTitleGenerated: string | null;
-  lastInteractionDate: string;
-  interactionCount: number;
-  isInBook?: boolean; // New field
-  isDeletedFromBook?: boolean; // New field
-};
+  user_id: string;
+  titolo: string;
+  testo: string;
+  seme_id: string | null;
+  icona: string | null;
+  stato: string; // 'bozza_in_archivio', 'promosso_al_libro', ecc.
+  raw_interaction_session_id: string | null;
+  eco: string[] | null;
+  frase_finale: string | null;
+  ordine: number | null;
+}
 
 export default function ArchivioClient({ user }: { user: User }) {
   const router = useRouter();
-  const [rawSessions, setRawSessions] = useState<RawInteractionSessionSummary[]>([]);
+  const [capitoliUtente, setCapitoliUtente] = useState<Capitolo[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [authLoading, setAuthLoading] = useState(false); // Kept if needed for other auth actions
-  // Editing and transfer states might be removed or re-purposed if editing happens on a different page
-  // const [editingId, setEditingId] = useState<number | null>(null);
-  // const [editForm, setEditForm] = useState<EditingCapitolo | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set()); // Use sessionId (string)
-  const [promotingToChapter, setPromotingToChapter] = useState<string | null>(null); // Store sessionId being promoted
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+  const [promotingToLibro, setPromotingToLibro] = useState<number | null>(null);
+
+  // Stati per la modifica
+  const [editingCapitolo, setEditingCapitolo] = useState<Capitolo | null>(null);
+  const [editTitolo, setEditTitolo] = useState<string>('');
+  const [editTesto, setEditTesto] = useState<string>('');
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const loadRawInteractionSessions = useCallback(async (userId: string) => {
+  const loadCapitoliUtente = useCallback(async (userId: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      // 1. Fetch all raw interactions for the user
-      const { data: rawInteractionsData, error: fetchError } = await supabase
-        .from('raw_seed_interactions')
-        .select('session_id, seed_archetype_id, seed_title_generated, created_at, interaction_step')
+      const { data: capitoliData, error: fetchError } = await supabase
+        .from('capitoli')
+        .select('*') // Seleziona tutti i campi necessari
         .eq('user_id', userId)
+        // Filtra per stati rilevanti per l'archivio
+        .in('stato', ['bozza_in_archivio', 'promosso_al_libro'])
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-      if (!rawInteractionsData) {
-        setRawSessions([]);
-        setLoading(false);
-        return;
-      }
 
-      // 2. Fetch 'capitoli' that are linked to raw_interaction_session_id
-      const { data: bookChapters, error: chaptersError } = await supabase
-        .from('capitoli')
-        .select('raw_interaction_session_id, stato')
-        .eq('user_id', userId)
-        .in('stato', ['nel_libro', 'archivio_cancellato'])
-        .not('raw_interaction_session_id', 'is', null); // Corrected syntax
-
-      if (chaptersError) throw chaptersError;
-
-      const inBookSessionIds = new Set<string>();
-      const deletedFromBookSessionIds = new Set<string>();
-
-      if (bookChapters) {
-        bookChapters.forEach(chapter => {
-          if (chapter.raw_interaction_session_id) {
-            if (chapter.stato === 'nel_libro') {
-              inBookSessionIds.add(chapter.raw_interaction_session_id);
-            } else if (chapter.stato === 'archivio_cancellato') {
-              deletedFromBookSessionIds.add(chapter.raw_interaction_session_id);
-            }
-          }
-        });
-      }
-
-      // 3. Process raw interactions into session summaries
-      const sessionsMap = new Map<string, RawInteractionSessionSummary>();
-      rawInteractionsData.forEach(item => {
-        let sessionSummary = sessionsMap.get(item.session_id);
-        if (!sessionSummary) {
-          sessionSummary = {
-            sessionId: item.session_id,
-            seedArchetypeId: item.seed_archetype_id,
-            seedTitleGenerated: item.seed_title_generated,
-            lastInteractionDate: item.created_at,
-            interactionCount: 0, // Will be incremented
-            isInBook: inBookSessionIds.has(item.session_id) && !deletedFromBookSessionIds.has(item.session_id),
-            isDeletedFromBook: deletedFromBookSessionIds.has(item.session_id),
-          };
-        }
-
-        sessionSummary.interactionCount += 1;
-        // Update last interaction date if this item is newer
-        if (new Date(item.created_at) > new Date(sessionSummary.lastInteractionDate)) {
-          sessionSummary.lastInteractionDate = item.created_at;
-        }
-        // Update title if this item has one and current summary doesn't, or if this item is later and has a title
-        if (item.seed_title_generated && (!sessionSummary.seedTitleGenerated || new Date(item.created_at) >= new Date(sessionSummary.lastInteractionDate))) {
-          sessionSummary.seedTitleGenerated = item.seed_title_generated;
-        }
-        // Ensure flags are updated if processing multiple items for the same session
-        sessionSummary.isInBook = inBookSessionIds.has(item.session_id) && !deletedFromBookSessionIds.has(item.session_id);
-        sessionSummary.isDeletedFromBook = deletedFromBookSessionIds.has(item.session_id);
-
-        sessionsMap.set(item.session_id, sessionSummary);
-      });
-
-      const sortedSessions = Array.from(sessionsMap.values()).sort(
-        (a, b) => new Date(b.lastInteractionDate).getTime() - new Date(a.lastInteractionDate).getTime()
-      );
-      setRawSessions(sortedSessions);
+      setCapitoliUtente(capitoliData || []);
 
     } catch (err) {
-      console.error('Error loading raw interaction sessions or chapters:', err);
+      console.error('Error loading capitoli:', err);
       const supabaseError = err as any;
       setError(`Errore nel caricamento dell'archivio: ${supabaseError.message || 'Errore sconosciuto'}`);
     } finally {
       setLoading(false);
     }
-  }, [supabase]); // Removed user from dependencies as it's passed directly
+  }, [supabase]);
 
   useEffect(() => {
     if (user?.id) {
-      loadRawInteractionSessions(user.id);
+      loadCapitoliUtente(user.id);
     }
-  }, [user, loadRawInteractionSessions]);
+  }, [user, loadCapitoliUtente]);
 
-  const toggleCardExpansion = (sessionId: string) => {
+  const toggleCardExpansion = (capitoloId: number) => {
     const newExpanded = new Set(expandedCards);
-    if (newExpanded.has(sessionId)) {
-      newExpanded.delete(sessionId);
+    if (newExpanded.has(capitoloId)) {
+      newExpanded.delete(capitoloId);
     } else {
-      newExpanded.add(sessionId);
+      newExpanded.add(capitoloId);
     }
     setExpandedCards(newExpanded);
   };
 
-  const handleViewSessionDetails = (sessionId: string) => {
-    // For now, just log. Later, navigate to a detail page:
-    // router.push(`/archivio/${sessionId}`);
-    console.log("View details for session:", sessionId);
-    // As a quick way to see details, we can expand the card or show a modal here too.
-    // For this step, clicking the card title area will serve as "view details" by expanding it.
-    toggleCardExpansion(sessionId);
+  const openEditModal = (capitolo: Capitolo) => {
+    setEditingCapitolo(capitolo);
+    setEditTitolo(capitolo.titolo);
+    setEditTesto(capitolo.testo);
+    setShowEditModal(true);
   };
 
-  const handleCreateChapterFromSession = async (session: RawInteractionSessionSummary) => {
-    if (!user) return;
-    setPromotingToChapter(session.sessionId);
+  const handleSaveEdit = async () => {
+    if (!editingCapitolo) return;
+    setIsSavingEdit(true);
     setError(null);
 
     try {
-      // 1. Fetch all interactions for this session to get the final content
-      const { data: interactions, error: fetchError } = await supabase
-        .from('raw_seed_interactions')
-        .select('interaction_type, data, seed_title_generated')
-        .eq('user_id', user.id)
-        .eq('session_id', session.sessionId)
-        .order('interaction_step', { ascending: true }); // Important to get steps in order
-
-      if (fetchError) throw fetchError;
-      if (!interactions || interactions.length === 0) {
-        throw new Error("Nessuna interazione trovata per questa sessione.");
-      }
-
-      // 2. Extract title and final content
-      // Title is from summary, or find the last one set in the interactions.
-      let finalTitle = session.seedTitleGenerated;
-      let finalContent = "";
-
-      // Iterate backwards to find the last gemini_response with content and potentially a title
-      for (let i = interactions.length - 1; i >= 0; i--) {
-        const step = interactions[i];
-        if (step.interaction_type.startsWith('gemini_response_')) {
-          if (step.data?.parsed_output) {
-            finalContent = Array.isArray(step.data.parsed_output)
-              ? step.data.parsed_output.join('\n\n')
-              : step.data.parsed_output;
-          }
-          if (step.seed_title_generated && !finalTitle) { // Prioritize title from the step if summary didn't have one
-            finalTitle = step.seed_title_generated;
-          }
-          if (finalContent) break; // Found the main content
-        }
-      }
-      
-      if (!finalTitle) {
-         // Fallback title if none was explicitly generated/found
-        finalTitle = `Capitolo da ${session.seedArchetypeId}`;
-      }
-      if (!finalContent) {
-        // Fallback content if no Gemini output found (should not happen in normal flow)
-        finalContent = "Contenuto non ancora generato o sessione incompleta.";
-      }
-
-      // Fetch current max 'ordine' for this user's chapters
-      const { data: maxOrderData, error: maxOrderError } = await supabase
+      const { error: updateError } = await supabase
         .from('capitoli')
+        .update({
+          titolo: editTitolo,
+          testo: editTesto
+        })
+        .eq('id', editingCapitolo.id);
+
+      if (updateError) throw updateError;
+
+      alert('Modifiche salvate con successo!');
+      setShowEditModal(false);
+      setEditingCapitolo(null);
+      await loadCapitoliUtente(user.id); // Ricarica i dati
+
+    } catch (err: any) {
+      console.error('Errore durante il salvataggio delle modifiche:', err);
+      setError(`Errore salvataggio: ${err.message || 'Sconosciuto'}`);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handlePromoteToLibro = async (capitolo: Capitolo) => {
+    if (!user) return;
+    setPromotingToLibro(capitolo.id);
+    setError(null);
+
+    try {
+      // 1. Calcola il prossimo valore di 'ordine' per la tabella 'libro'
+      const { data: maxOrderData, error: maxOrderError } = await supabase
+        .from('libro')
         .select('ordine')
         .eq('user_id', user.id)
-        .is('ordine', 'not.null') // Ensure we only consider rows where ordine is set
         .order('ordine', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (maxOrderError) {
-        // Log the error but proceed, newOrder will be 0 in this case
-        console.warn('Could not reliably determine max order for chapters, defaulting new chapter order. Error:', maxOrderError.message);
+        console.error("Errore nel recuperare max ordine da libro:", maxOrderError);
+        // Non bloccare l'operazione, ma logga. L'ordine potrebbe essere 0.
       }
       const newOrder = (maxOrderData?.ordine ?? -1) + 1;
 
-      // 3. Create new chapter in 'capitoli' table
-      const { error: insertError } = await supabase
+      // 2. Prepara i dati per la tabella 'libro'
+      const datiLibro = {
+        user_id: user.id,
+        titolo: capitolo.titolo,
+        sottotitolo: capitolo.eco?.join(' ') || '', // Mappa eco a sottotitolo
+        testo: capitolo.testo,
+        seme_id: capitolo.seme_id,
+        icona: capitolo.icona,
+        raw_interaction_session_id: capitolo.raw_interaction_session_id,
+        ordine: newOrder,
+        // altri campi se 'libro' li ha e 'capitolo' può fornirli
+      };
+
+      // 3. Inserisci il nuovo record nella tabella 'libro'
+      const { data: libroInserito, error: insertLibroError } = await supabase
+        .from('libro')
+        .insert(datiLibro)
+        .select() // Per ottenere il record inserito, se necessario
+        .single(); // Se ci si aspetta un solo record
+
+      if (insertLibroError) throw insertLibroError;
+      if (!libroInserito) throw new Error("Inserimento nella tabella libro non ha restituito dati.");
+
+      console.log(`Capitolo "${capitolo.titolo}" copiato in 'libro' con ID: ${libroInserito.id} e ordine: ${newOrder}`);
+
+      // 4. Aggiorna lo stato del capitolo originale in 'capitoli'
+      const { error: updateCapitoloError } = await supabase
         .from('capitoli')
-        .insert({
-          user_id: user.id,
-          titolo: finalTitle,
-          testo: finalContent, // MODIFICATO
-          seme_id: session.seedArchetypeId,
-          icona: '📖',
-          stato: 'bozza_da_archivio',
-          raw_interaction_session_id: session.sessionId,
-          eco: [],
-          frase_finale: finalTitle
-          // 'ordine: newOrder' è stato RIMOSSO
-        });
+        .update({ stato: 'promosso_al_libro' })
+        .eq('id', capitolo.id);
 
-      if (insertError) throw insertError;
+      if (updateCapitoloError) throw updateCapitoloError;
 
-      // 4. Optionally, update status of raw_seed_interactions
-      // This is a nice-to-have, can be skipped if complex due to RLS or policies
-      // await supabase.from('raw_seed_interactions').update({ status: 'copied_to_capitoli' })
-      //   .eq('session_id', session.sessionId);
+      alert(`Capitolo "${capitolo.titolo}" promosso e aggiunto al libro con successo!`);
 
-      alert(`Capitolo "${finalTitle}" creato e pronto per la modifica nel Libro!`);
-      // Optionally, redirect to the book editing page or refresh current list
-      // router.push(`/libro?editingChapterId=${newChapterId}`); // if newChapterId is returned
+      // Ricarica i capitoli per riflettere il cambio di stato
+      await loadCapitoliUtente(user.id);
 
     } catch (err: any) {
-      console.error('Errore durante la creazione del capitolo:', err);
-      setError(`Errore creazione capitolo: ${err.message || 'Sconosciuto'}`);
+      console.error('Errore durante la promozione del capitolo al libro:', err);
+      setError(`Errore promozione capitolo: ${err.message || 'Sconosciuto'}`);
     } finally {
-      setPromotingToChapter(null);
+      setPromotingToLibro(null);
     }
   };
 
-
-
-  const sessionsInBook = rawSessions.filter(s => s.isInBook && !s.isDeletedFromBook);
-  const otherArchivedSessions = rawSessions.filter(s => !s.isInBook || s.isDeletedFromBook);
-
-  // Apply search term to both lists
-  const filterLogic = (session: RawInteractionSessionSummary) =>
-    (session.seedArchetypeId && session.seedArchetypeId.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (session.seedTitleGenerated && session.seedTitleGenerated.toLowerCase().includes(searchTerm.toLowerCase()));
-
-  const filteredSessionsInBook = sessionsInBook.filter(filterLogic);
-  const filteredOtherArchivedSessions = otherArchivedSessions.filter(filterLogic);
-
+  const filteredCapitoli = capitoliUtente.filter(capitolo =>
+    (capitolo.titolo && capitolo.titolo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (capitolo.seme_id && capitolo.seme_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (capitolo.testo && capitolo.testo.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Caricamento archivio interazioni...</p>
+        <p className="text-sm text-muted-foreground">Caricamento archivio capitoli...</p>
       </div>
     );
   }
@@ -329,7 +245,7 @@ export default function ArchivioClient({ user }: { user: User }) {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">{error}</p>
-            <Button variant="default" size="default" className="" onClick={() => user?.id && loadRawInteractionSessions(user.id)}>
+            <Button variant="default" size="default" className="" onClick={() => user?.id && loadCapitoliUtente(user.id)}>
               Riprova Caricamento
             </Button>
           </CardContent>
@@ -338,33 +254,31 @@ export default function ArchivioClient({ user }: { user: User }) {
     );
   }
 
-  const renderSessionCard = (session: RawInteractionSessionSummary, isBookContext: boolean) => {
-    const isExpanded = expandedCards.has(session.sessionId);
-    const buttonDisabled = (isBookContext && !session.isDeletedFromBook) || promotingToChapter === session.sessionId;
-    let buttonText = "Crea Capitolo da questa Interazione";
-    if (isBookContext && !session.isDeletedFromBook) {
+  const renderCapitoloCard = (capitolo: Capitolo) => {
+    const isExpanded = expandedCards.has(capitolo.id);
+    const isPromosso = capitolo.stato === 'promosso_al_libro';
+    const buttonDisabled = isPromosso || promotingToLibro === capitolo.id;
+
+    let buttonText = "Manda al Libro";
+    if (isPromosso) {
       buttonText = "Già nel Libro";
-    } else if (session.isDeletedFromBook) {
-      buttonText = "Ricrea Capitolo (da sessione archiviata)";
     }
 
-
     return (
-      <Card key={session.sessionId} className={`overflow-hidden transition-all duration-200 ${isBookContext && !session.isDeletedFromBook ? 'border-green-500' : (session.isDeletedFromBook ? 'border-orange-400' : '')}`}>
-        <CardHeader className="pb-3 cursor-pointer" onClick={() => handleViewSessionDetails(session.sessionId)}>
+      <Card key={capitolo.id} className={`overflow-hidden transition-all duration-200 ${isPromosso ? 'border-green-500' : ''}`}>
+        <CardHeader className="pb-3 cursor-pointer" onClick={() => toggleCardExpansion(capitolo.id)}>
           <div className="flex items-start justify-between">
             <CardTitle className="flex items-center gap-3 flex-1 group">
-              <span className="text-2xl">💬</span>
+              <span className="text-2xl">{capitolo.icona || '📖'}</span>
               <span className="group-hover:text-primary transition-colors">
-                {session.seedTitleGenerated || session.seedArchetypeId}
+                {capitolo.titolo || `Capitolo da ${capitolo.seme_id || 'sconosciuto'}`}
               </span>
               <div className="ml-auto flex items-center gap-2">
-                {session.isDeletedFromBook && <Badge variant="outline" className="border-orange-400 text-orange-500">Rimosso dal Libro</Badge>}
-                {isBookContext && !session.isDeletedFromBook && <Badge variant="default" className="bg-green-600 hover:bg-green-700">Nel Libro</Badge>}
-                <Badge variant="outline">Interazioni: {session.interactionCount}</Badge>
+                {isPromosso && <Badge variant="default" className="bg-green-600 hover:bg-green-700">Nel Libro</Badge>}
+                {capitolo.stato === 'bozza_in_archivio' && <Badge variant="outline">Bozza</Badge>}
                 <Badge variant="secondary" className="gap-1">
                   <Calendar className="h-3 w-3" />
-                  {new Date(session.lastInteractionDate).toLocaleDateString()}
+                  {new Date(capitolo.created_at).toLocaleDateString()}
                 </Badge>
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -379,26 +293,44 @@ export default function ArchivioClient({ user }: { user: User }) {
         {isExpanded && (
           <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
             <p className="text-sm text-muted-foreground">
-              ID Sessione: {session.sessionId} <br />
-              Archetipo Seme: {session.seedArchetypeId}
+              <strong>Seme:</strong> {capitolo.seme_id || 'Non specificato'} <br />
+              <strong>ID Capitolo:</strong> {capitolo.id} <br />
+              {capitolo.raw_interaction_session_id && <><strong>ID Sessione Grezza:</strong> {capitolo.raw_interaction_session_id} <br /></>}
+              <strong>Stato:</strong> {capitolo.stato}
             </p>
-            <Button
-              onClick={() => handleCreateChapterFromSession(session)}
-              disabled={buttonDisabled}
-              variant={isBookContext && !session.isDeletedFromBook ? "secondary" : "default"}
-              size="sm"
-              className="gap-2"
-            >
-              {promotingToChapter === session.sessionId ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CopyPlus className="h-4 w-4" />
-              )}
-              {buttonText}
-            </Button>
-            <p className="text-xs text-center italic mt-2">
-              (La visualizzazione dettagliata dei passaggi dell'interazione sarà implementata qui o in una pagina dedicata.)
-            </p>
+            {/* Qui verrà aggiunta la visualizzazione del testo e l'opzione di modifica */}
+            <div className="p-2 border rounded-md bg-muted/30 max-h-40 overflow-y-auto">
+                <p className="text-sm whitespace-pre-wrap">{capitolo.testo || "Testo non disponibile."}</p>
+            </div>
+
+            {capitolo.stato === 'bozza_in_archivio' && (
+              <div className="flex space-x-2 mt-2">
+                <Button
+                  onClick={() => handlePromoteToLibro(capitolo)}
+                  disabled={buttonDisabled}
+                  variant={"default"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  {promotingToLibro === capitolo.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SendToBack className="h-4 w-4" />
+                  )}
+                  {buttonText}
+                </Button>
+                <Button
+                  onClick={() => openEditModal(capitolo)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={promotingToLibro === capitolo.id} // Disabilita anche se si sta promuovendo
+                >
+                  <Edit3 className="h-4 w-4" />
+                  Modifica
+                </Button>
+              </div>
+            )}
           </CardContent>
         )}
       </Card>
@@ -408,16 +340,16 @@ export default function ArchivioClient({ user }: { user: User }) {
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold gradient-text">📜 Archivio Interazioni Grezze</h1>
+        <h1 className="text-4xl font-bold gradient-text">📜 Archivio Capitoli</h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Rivedi le tue sessioni di interazione con i semi e promuovile a capitoli del tuo libro.
+          Rivedi le tue bozze di capitolo, modificane il contenuto e promuovile al tuo libro.
         </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex-1 w-full sm:max-w-md">
           <Input
-            placeholder="🔍 Cerca per ID Seme o Titolo..."
+            placeholder="🔍 Cerca per Titolo, Seme o Testo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full"
@@ -425,47 +357,67 @@ export default function ArchivioClient({ user }: { user: User }) {
         </div>
       </div>
 
-      {/* Summary Cards - can be re-enabled or adjusted as needed */}
-      {/* ... */}
-
-      {/* Section for Sessions Already in Book */}
-      {filteredSessionsInBook.length > 0 && (
-        <div className="space-y-4 mt-8 pt-6 border-t">
-          <h2 className="text-2xl font-semibold">Sessioni Già nel Libro</h2>
-          {filteredSessionsInBook.map(session => renderSessionCard(session, true))}
-        </div>
-      )}
-
-      {/* Section for Other Archived Sessions */}
       <div className="space-y-4 mt-8 pt-6 border-t">
-         <h2 className="text-2xl font-semibold">Altre Sessioni Archiviate</h2>
-        {filteredOtherArchivedSessions.length === 0 && rawSessions.length > 0 && !loading && (
+        {filteredCapitoli.length === 0 && !loading && (
            <Card className="py-12">
             <CardContent className="text-center space-y-4">
               <ArchiveX className="h-16 w-16 text-muted-foreground mx-auto" />
-              <h3 className="text-xl font-semibold">Nessuna altra sessione archiviata</h3>
+              <h3 className="text-xl font-semibold">Nessun capitolo trovato</h3>
               <p className="text-muted-foreground">
-                {searchTerm ? 'Nessun risultato per la ricerca attuale in questa sezione.' : 'Tutte le sessioni sono visualizzate sopra o non ci sono altre sessioni.'}
+                {searchTerm ? 'Nessun capitolo corrisponde alla tua ricerca.' : 'Non hai ancora bozze di capitolo. Inizia scrivendo!'}
               </p>
             </CardContent>
           </Card>
         )}
-        {filteredOtherArchivedSessions.length > 0 &&
-          filteredOtherArchivedSessions.map(session => renderSessionCard(session, false))
-        }
+        {filteredCapitoli.map(capitolo => renderCapitoloCard(capitolo))}
       </div>
 
-
-      {(rawSessions.length === 0 && !loading) && (
-         <Card className="py-12">
-            <CardContent className="text-center space-y-4">
-              <ArchiveX className="h-16 w-16 text-muted-foreground mx-auto" />
-              <h3 className="text-xl font-semibold">Nessuna interazione trovata</h3>
-              <p className="text-muted-foreground">
-                Non hai ancora sessioni di interazione registrate. Inizia un dialogo con un seme!
-              </p>
-            </CardContent>
-          </Card>
+      {editingCapitolo && (
+        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Modifica Capitolo</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="edit-titolo" className="text-right col-span-1">
+                  Titolo
+                </label>
+                <Input
+                  id="edit-titolo"
+                  value={editTitolo}
+                  onChange={(e) => setEditTitolo(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <label htmlFor="edit-testo" className="text-right col-span-1 pt-2">
+                  Testo
+                </label>
+                <Textarea
+                  id="edit-testo"
+                  value={editTesto}
+                  onChange={(e) => setEditTesto(e.target.value)}
+                  className="col-span-3 min-h-[200px] sm:min-h-[300px]"
+                  rows={10}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditModal(false)} disabled={isSavingEdit}>
+                Annulla
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
+                {isSavingEdit ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Salva Modifiche
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

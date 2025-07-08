@@ -105,37 +105,58 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
       }
       setCurrentBook(bookData);
 
-      // Fetch chapters
+      // Fetch chapters from 'libro' table
       const { data: chapterData, error: chapterError } = await supabase
-        .from('capitoli')
+        .from('libro') // MODIFICATO: leggere da 'libro'
         .select('*')
         .eq('user_id', currentUser.id)
-        .in('stato', ['nel_libro', 'bozza_da_archivio']); // Filter by relevant statuses
+        .order('ordine', { ascending: true }); // MODIFICATO: ordinare per 'ordine'
 
       if (chapterError) {
-        console.error('Errore nel recupero dei capitoli:', chapterError);
-        // Optionally set an error state for chapters
+        console.error('Errore nel recupero dei capitoli del libro:', chapterError);
+        setChapters([]); // Imposta array vuoto in caso di errore
       } else {
-        setChapters(chapterData || []);
+        // Assicurati che CapitoloType sia compatibile con i dati da 'libro'
+        // Potrebbe essere necessario un mapping se i nomi dei campi differiscono significativamente
+        // o se CapitoloType si aspetta campi non presenti in 'libro' (es. 'stato')
+        // Per ora, assumiamo una compatibilità di base per titolo, testo, id, ordine.
+        // Il campo 'stato' non sarà presente nei dati da 'libro', quindi CapitoloType dovrà permetterlo come opzionale
+        // o dovremo adattare CapitoloType.
+        // Per semplicità, rinomino temporaneamente CapitoloType a LibroCapitoloType per chiarezza qui.
+        // Idealmente, CapitoloType dovrebbe essere flessibile o avremmo tipi distinti.
+        const loadedChapters = (chapterData || []).map(ch => ({
+          ...ch,
+          // Aggiungi campi mancanti da CapitoloType se necessario con valori di default,
+          // o assicurati che CapitoloType gestisca la loro assenza.
+          // es. stato: 'nel_libro' // Potremmo voler aggiungere uno stato di default qui se necessario altrove
+        })) as CapitoloType[]; // Cast a CapitoloType, assicurati sia corretto
+        setChapters(loadedChapters);
       }
 
-      // Fetch shared status for these chapters
+      // Fetch shared status for these chapters (IDs from 'libro' table)
       if (currentUser && chapterData && chapterData.length > 0) {
-        const { data: sharedData, error: sharedError } = await supabase
-          .from('shared_chapters')
-          .select('chapter_id')
-          .eq('original_user_id', currentUser.id)
-          .in('chapter_id', chapterData.map(ch => ch.id));
+        const chapterIdsFromLibro = chapterData.map(ch => ch.id);
+        if (chapterIdsFromLibro.length > 0) {
+          const { data: sharedData, error: sharedError } = await supabase
+            .from('shared_chapters')
+            .select('chapter_id')
+            .eq('original_user_id', currentUser.id)
+            .in('chapter_id', chapterIdsFromLibro); // Usa gli ID dei capitoli da 'libro'
 
-        if (sharedError) {
-          console.error('Errore nel recupero stato condivisione capitoli:', sharedError);
+          if (sharedError) {
+            console.error('Errore nel recupero stato condivisione capitoli (da libro):', sharedError);
+          } else {
+            setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || []));
+          }
         } else {
-          setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || []));
+          setSharedChapterIds(new Set()); // Nessun capitolo da controllare
         }
+      } else {
+        setSharedChapterIds(new Set()); // Nessun utente o nessun capitolo
       }
     }
     setLoading(false);
-  }, [supabase, initialUser]); // State setters (setLoading, setUser, etc.) are stable and not needed here
+  }, [supabase, initialUser]);
 
   useEffect(() => {
     fetchUserAndBook();
@@ -163,24 +184,28 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     setIsProcessingAction(true);
     try {
       const { error } = await supabase
-        .from('capitoli')
+        .from('libro') // MODIFICATO: tabella 'libro'
         .update({
           titolo: editFormData.titolo,
           testo: editFormData.testo,
           updated_at: new Date().toISOString()
         })
-        .eq('id', editingChapter.id)
-        .eq('user_id', user?.id); // Ensure user owns chapter
+        .eq('id', editingChapter.id) // Assumendo che l'ID sia lo stesso tra 'capitoli' e 'libro' per lo stesso contenuto
+        .eq('user_id', user?.id);
 
       if (error) throw error;
 
       setChapters(prev => prev.map(ch =>
-        ch.id === editingChapter.id ? { ...ch, ...editFormData, updated_at: new Date().toISOString() } : ch
+        ch.id === editingChapter.id ? { ...ch,
+                                        titolo: editFormData.titolo,
+                                        testo: editFormData.testo,
+                                        updated_at: new Date().toISOString()
+                                      } : ch
       ));
-      toast.success("Capitolo aggiornato con successo!");
+      toast.success("Capitolo aggiornato con successo nel libro!");
       handleCloseEditModal();
     } catch (err: any) {
-      console.error("Errore aggiornamento capitolo:", err);
+      console.error("Errore aggiornamento capitolo nel libro:", err);
       toast.error(`Errore: ${err.message}`);
     } finally {
       setIsProcessingAction(false);
@@ -201,19 +226,26 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     if (!deletingChapter) return;
     setIsProcessingAction(true);
     try {
+      // Elimina il capitolo dalla tabella 'libro'
       const { error } = await supabase
-        .from('capitoli')
-        .update({ stato: 'archivio_cancellato', updated_at: new Date().toISOString() })
+        .from('libro') // MODIFICATO: tabella 'libro'
+        .delete()
         .eq('id', deletingChapter.id)
         .eq('user_id', user?.id);
 
       if (error) throw error;
 
+      // TODO: Decidere cosa fare con il record in 'capitoli'
+      // Opzione: aggiornare lo stato in 'capitoli' a 'bozza_in_archivio' o un nuovo stato 'rimosso_dal_libro'
+      // Per ora, non facciamo nulla con 'capitoli', il record lì rimane 'promosso_al_libro'
+      // Questo potrebbe portare a incoerenze se si prova a ri-promuovere senza logica aggiuntiva.
+      // console.log(`Capitolo ${deletingChapter.id} eliminato da 'libro'. Stato in 'capitoli' non modificato.`);
+
       setChapters(prev => prev.filter(ch => ch.id !== deletingChapter.id));
-      toast.success("Capitolo spostato nell'archivio (cancellato).");
+      toast.success("Capitolo rimosso dal libro con successo.");
       handleCloseDeleteModal();
     } catch (err: any) {
-      console.error("Errore cancellazione capitolo:", err);
+      console.error("Errore rimozione capitolo dal libro:", err);
       toast.error(`Errore: ${err.message}`);
     } finally {
       setIsProcessingAction(false);
@@ -284,14 +316,14 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
       // but multiple individual updates can work for smaller lists.
       // Here, we'll attempt individual updates.
       // For Supabase upsert to work as update, ensure 'id' is part of the object.
-      const { error } = await supabase.from('capitoli').upsert(updates, {
+      const { error } = await supabase.from('libro').upsert(updates, { // MODIFICATO: tabella 'libro'
         onConflict: 'id', // Specify the conflict target (PK)
         // ignoreDuplicates: false, // Default is false, upsert will update
       });
 
 
       if (error) {
-        console.error('Errore durante l\'aggiornamento dell\'ordine dei capitoli:', error);
+        console.error('Errore durante l\'aggiornamento dell\'ordine dei capitoli nella tabella LIBRO:', error);
         // Optionally revert state or show error to user
         // For simplicity, we'll refetch to ensure consistency if error
         if (user) fetchUserAndBook(); // Refetch to get server state
@@ -450,10 +482,13 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                             <div className="flex items-center gap-3">
                               <GripVertical className="h-5 w-5 text-muted-foreground" />
                               <span>{chapter.titolo}</span>
-                              <Badge variant={chapter.stato === 'nel_libro' ? 'default' :
+                              {/* La Badge dello stato è stata rimossa/commentata poiché 'stato' non proviene più dalla tabella 'libro'
+                                  Potremmo aggiungere una badge statica se necessario, es. <Badge variant="default">Nel Libro</Badge>
+                              */}
+                              {/* <Badge variant={chapter.stato === 'nel_libro' ? 'default' :
                                              (chapter.stato === 'bozza_da_archivio' ? 'outline' : 'secondary')}>
                                 {chapter.stato}
-                              </Badge>
+                              </Badge> */}
                             </div>
                             <div className="flex items-center space-x-1">
                               <Button variant="ghost" size="icon" className="" onClick={() => handleOpenEditModal(chapter)} disabled={isProcessingAction} title="Modifica">

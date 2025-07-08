@@ -255,6 +255,9 @@ export default function ArchivioClient({ user }: { user: User }) {
   }
 
   const renderCapitoloCard = (capitolo: Capitolo) => {
+    // DIAGNOSTIC LOG
+    console.log('[ARCHIVIO CLIENT] Rendering Capitolo:', capitolo);
+
     const isExpanded = expandedCards.has(capitolo.id);
     const isPromosso = capitolo.stato === 'promosso_al_libro';
     const buttonDisabled = isPromosso || promotingToLibro === capitolo.id;
@@ -299,8 +302,16 @@ export default function ArchivioClient({ user }: { user: User }) {
               <strong>Stato:</strong> {capitolo.stato}
             </p>
             {/* Qui verrà aggiunta la visualizzazione del testo e l'opzione di modifica */}
-            <div className="p-2 border rounded-md bg-muted/30 max-h-40 overflow-y-auto">
-                <p className="text-sm whitespace-pre-wrap">{capitolo.testo || "Testo non disponibile."}</p>
+            <div
+              className="p-2 border rounded-md bg-muted/30 max-h-40 overflow-y-auto"
+              style={{ border: '2px solid red' }} // STILE DIAGNOSTICO
+            >
+                <p
+                  className="text-sm whitespace-pre-wrap"
+                  style={{ color: 'blue', height: 'auto', display: 'block', backgroundColor: 'lightyellow' }} // STILI DIAGNOSTICI
+                >
+                  {capitolo.testo || "Testo non disponibile (diagnostic placeholder)."}
+                </p>
             </div>
 
             {capitolo.stato === 'bozza_in_archivio' && (

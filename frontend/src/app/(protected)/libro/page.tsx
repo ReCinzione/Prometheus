@@ -110,11 +110,14 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
         .from('libro') // MODIFICATO: leggere da 'libro'
         .select('*')
         .eq('user_id', currentUser.id)
-        .order('ordine', { ascending: true }); // MODIFICATO: ordinare per 'ordine'
+        .order('ordine', { ascending: true });
+
+      // DIAGNOSTIC LOG
+      console.log('[LIBRO PAGE] Fetching chapters from "libro" table:', chapterData, 'Error:', chapterError);
 
       if (chapterError) {
         console.error('Errore nel recupero dei capitoli del libro:', chapterError);
-        setChapters([]); // Imposta array vuoto in caso di errore
+        setChapters([]);
       } else {
         // Assicurati che CapitoloType sia compatibile con i dati da 'libro'
         // Potrebbe essere necessario un mapping se i nomi dei campi differiscono significativamente
@@ -479,43 +482,13 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                               snapshot.isDragging ? 'bg-purple-50 shadow-xl' : ''
                             }`}
                           >
-                            <div className="flex items-center gap-3">
-                              <GripVertical className="h-5 w-5 text-muted-foreground" />
-                              <span>{chapter.titolo}</span>
-                              {/* La Badge dello stato è stata rimossa/commentata poiché 'stato' non proviene più dalla tabella 'libro'
-                                  Potremmo aggiungere una badge statica se necessario, es. <Badge variant="default">Nel Libro</Badge>
-                              */}
-                              {/* <Badge variant={chapter.stato === 'nel_libro' ? 'default' :
-                                             (chapter.stato === 'bozza_da_archivio' ? 'outline' : 'secondary')}>
-                                {chapter.stato}
-                              </Badge> */}
+                            {/* CONTENUTO SEMPLIFICATO PER DIAGNOSI */}
+                            <div className="flex-grow">
+                              <GripVertical className="inline h-5 w-5 text-muted-foreground mr-2" />
+                              <span>ID: {chapter.id} - Ordine: {chapter.ordine} - Titolo: {chapter.titolo}</span>
                             </div>
                             <div className="flex items-center space-x-1">
-                              <Button variant="ghost" size="icon" className="" onClick={() => handleOpenEditModal(chapter)} disabled={isProcessingAction} title="Modifica">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-
-                              {chapter.stato === 'nel_libro' && (
-                                sharedChapterIds.has(chapter.id) ? (
-                                  <span className="text-xs text-green-600 italic px-2">Condiviso</span>
-                                ) : (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className=""
-                                    onClick={() => handleShareChapter(chapter)}
-                                    disabled={isProcessingAction}
-                                    title="Condividi questo capitolo"
-                                  >
-                                    {isProcessingAction && editingChapter?.id !== chapter.id && deletingChapter?.id !== chapter.id ?
-                                     <ActionLoader className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4 text-blue-500" /> }
-                                  </Button>
-                                )
-                              )}
-
-                              <Button variant="ghost" size="icon" className="" onClick={() => handleOpenDeleteModal(chapter)} disabled={isProcessingAction} title="Elimina (Archivia)">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                                {/* Pulsanti rimossi temporaneamente per semplificare, verranno ripristinati */}
                             </div>
                           </Card>
                         )}

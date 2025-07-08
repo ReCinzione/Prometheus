@@ -407,7 +407,7 @@ export default function ArchivioClient({ user }: { user: User }) {
               <Button variant="outline" onClick={() => setShowEditModal(false)} disabled={isSavingEdit} className="" size="default">
                 Annulla
               </Button>
-              <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="" size="default">
+              <Button variant="default" onClick={handleSaveEdit} disabled={isSavingEdit} className="" size="default">
                 {isSavingEdit ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (

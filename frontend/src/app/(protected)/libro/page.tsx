@@ -42,25 +42,41 @@ interface Book {
   updated_at: string;
 }
 
+// Definiamo un tipo specifico per i capitoli caricati dalla tabella 'libro'
+interface LibroCapitolo {
+  id: string;
+  user_id: string;
+  titolo: string;
+  sottotitolo?: string | null;
+  testo: string;
+  seme_id?: string | null;
+  icona?: string | null;
+  raw_interaction_session_id?: string | null;
+  ordine: number;
+  created_at: string;
+  updated_at: string;
+  // Non includiamo 'stato' o 'eco' specifici di 'capitoli'
+}
+
 
 export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
   const componenteLibro = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<User | null>(initialUser || null);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<CapitoloType[]>([]); // State for chapters
+  const [chapters, setChapters] = useState<LibroCapitolo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCoverUpload, setShowCoverUpload] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
-  const [sharedChapterIds, setSharedChapterIds] = useState<Set<string>>(new Set()); // For tracking shared chapters
+  const [sharedChapterIds, setSharedChapterIds] = useState<Set<string>>(new Set());
 
   // State for editing and deleting chapters
-  const [editingChapter, setEditingChapter] = useState<CapitoloType | null>(null);
+  const [editingChapter, setEditingChapter] = useState<LibroCapitolo | null>(null); // MODIFICATO
   const [editFormData, setEditFormData] = useState<{ titolo: string; testo: string }>({ titolo: '', testo: '' });
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const [deletingChapter, setDeletingChapter] = useState<CapitoloType | null>(null);
+  const [deletingChapter, setDeletingChapter] = useState<LibroCapitolo | null>(null); // MODIFICATO
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isProcessingAction, setIsProcessingAction] = useState(false); // General loading for modal actions
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
 
   const supabase = createBrowserClient(
@@ -125,14 +141,23 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
         // Per ora, assumiamo una compatibilità di base per titolo, testo, id, ordine.
         // Il campo 'stato' non sarà presente nei dati da 'libro', quindi CapitoloType dovrà permetterlo come opzionale
         // o dovremo adattare CapitoloType.
-        // Per semplicità, rinomino temporaneamente CapitoloType a LibroCapitoloType per chiarezza qui.
         // Idealmente, CapitoloType dovrebbe essere flessibile o avremmo tipi distinti.
-        const loadedChapters = (chapterData || []).map(ch => ({
-          ...ch,
-          // Aggiungi campi mancanti da CapitoloType se necessario con valori di default,
-          // o assicurati che CapitoloType gestisca la loro assenza.
-          // es. stato: 'nel_libro' // Potremmo voler aggiungere uno stato di default qui se necessario altrove
-        })) as CapitoloType[]; // Cast a CapitoloType, assicurati sia corretto
+        // Ora usiamo LibroCapitolo
+        const loadedChapters: LibroCapitolo[] = (chapterData || []).map(dbRow => ({
+          id: dbRow.id, // Assumendo che dbRow.id sia string
+          titolo: dbRow.titolo,
+          testo: dbRow.testo,
+          sottotitolo: dbRow.sottotitolo,
+          ordine: dbRow.ordine,
+          // Mappa altri campi da CapitoloType se presenti in dbRow e necessari in LibroCapitolo
+          // Ad esempio, se CapitoloType (e quindi LibroCapitolo via Omit) ha seme_id, icona, etc.
+          seme_id: dbRow.seme_id,
+          icona: dbRow.icona,
+          created_at: dbRow.created_at, // Assumendo che CapitoloType abbia created_at
+          updated_at: dbRow.updated_at, // Assumendo che CapitoloType abbia updated_at
+          user_id: dbRow.user_id, // Assumendo che CapitoloType abbia user_id
+          raw_interaction_session_id: dbRow.raw_interaction_session_id, // Assumendo
+        }));
         setChapters(loadedChapters);
       }
 

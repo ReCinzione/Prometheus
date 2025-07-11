@@ -42,25 +42,41 @@ interface Book {
   updated_at: string;
 }
 
+// Definiamo un tipo specifico per i capitoli caricati dalla tabella 'libro'
+interface LibroCapitolo {
+  id: string;
+  user_id: string;
+  titolo: string;
+  sottotitolo?: string | null;
+  testo: string;
+  seme_id?: string | null;
+  icona?: string | null;
+  raw_interaction_session_id?: string | null;
+  ordine: number;
+  created_at: string;
+  updated_at: string;
+  // Non includiamo 'stato' o 'eco' specifici di 'capitoli'
+}
+
 
 export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
   const componenteLibro = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<User | null>(initialUser || null);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<CapitoloType[]>([]); // State for chapters
+  const [chapters, setChapters] = useState<LibroCapitolo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCoverUpload, setShowCoverUpload] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
-  const [sharedChapterIds, setSharedChapterIds] = useState<Set<string>>(new Set()); // For tracking shared chapters
+  // const [sharedChapterIds, setSharedChapterIds] = useState<Set<string>>(new Set()); // Temporaneamente commentato
 
   // State for editing and deleting chapters
-  const [editingChapter, setEditingChapter] = useState<CapitoloType | null>(null);
+  const [editingChapter, setEditingChapter] = useState<LibroCapitolo | null>(null);
   const [editFormData, setEditFormData] = useState<{ titolo: string; testo: string }>({ titolo: '', testo: '' });
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const [deletingChapter, setDeletingChapter] = useState<CapitoloType | null>(null);
+  const [deletingChapter, setDeletingChapter] = useState<LibroCapitolo | null>(null); // MODIFICATO
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isProcessingAction, setIsProcessingAction] = useState(false); // General loading for modal actions
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
 
   const supabase = createBrowserClient(
@@ -105,37 +121,69 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
       }
       setCurrentBook(bookData);
 
-      // Fetch chapters
+      // Fetch chapters from 'libro' table
       const { data: chapterData, error: chapterError } = await supabase
-        .from('capitoli')
+        .from('libro') // MODIFICATO: leggere da 'libro'
         .select('*')
         .eq('user_id', currentUser.id)
-        .in('stato', ['nel_libro', 'bozza_da_archivio']); // Filter by relevant statuses
+        .order('ordine', { ascending: true });
+
+      // DIAGNOSTIC LOG
+      console.log('[LIBRO PAGE] Fetching chapters from "libro" table:', chapterData, 'Error:', chapterError);
 
       if (chapterError) {
-        console.error('Errore nel recupero dei capitoli:', chapterError);
-        // Optionally set an error state for chapters
+        console.error('Errore nel recupero dei capitoli del libro:', chapterError);
+        setChapters([]);
       } else {
-        setChapters(chapterData || []);
+        // Assicurati che CapitoloType sia compatibile con i dati da 'libro'
+        // Potrebbe essere necessario un mapping se i nomi dei campi differiscono significativamente
+        // o se CapitoloType si aspetta campi non presenti in 'libro' (es. 'stato')
+        // Per ora, assumiamo una compatibilità di base per titolo, testo, id, ordine.
+        // Il campo 'stato' non sarà presente nei dati da 'libro', quindi CapitoloType dovrà permetterlo come opzionale
+        // o dovremo adattare CapitoloType.
+        // Idealmente, CapitoloType dovrebbe essere flessibile o avremmo tipi distinti.
+        // Ora usiamo LibroCapitolo
+        const loadedChapters: LibroCapitolo[] = (chapterData || []).map(dbRow => ({
+          id: dbRow.id, // Assumendo che dbRow.id sia string
+          titolo: dbRow.titolo,
+          testo: dbRow.testo,
+          sottotitolo: dbRow.sottotitolo,
+          ordine: dbRow.ordine,
+          // Mappa altri campi da CapitoloType se presenti in dbRow e necessari in LibroCapitolo
+          // Ad esempio, se CapitoloType (e quindi LibroCapitolo via Omit) ha seme_id, icona, etc.
+          seme_id: dbRow.seme_id,
+          icona: dbRow.icona,
+          created_at: dbRow.created_at, // Assumendo che CapitoloType abbia created_at
+          updated_at: dbRow.updated_at, // Assumendo che CapitoloType abbia updated_at
+          user_id: dbRow.user_id, // Assumendo che CapitoloType abbia user_id
+          raw_interaction_session_id: dbRow.raw_interaction_session_id, // Assumendo
+        }));
+        setChapters(loadedChapters);
       }
 
-      // Fetch shared status for these chapters
-      if (currentUser && chapterData && chapterData.length > 0) {
-        const { data: sharedData, error: sharedError } = await supabase
-          .from('shared_chapters')
-          .select('chapter_id')
-          .eq('original_user_id', currentUser.id)
-          .in('chapter_id', chapterData.map(ch => ch.id));
-
-        if (sharedError) {
-          console.error('Errore nel recupero stato condivisione capitoli:', sharedError);
-        } else {
-          setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || []));
-        }
-      }
+      // Fetch shared status for these chapters (IDs from 'libro' table) - TEMPORANEAMENTE COMMENTATO
+      // if (currentUser && chapterData && chapterData.length > 0) {
+      //   const chapterIdsFromLibro = chapterData.map(ch => ch.id);
+      //   if (chapterIdsFromLibro.length > 0) {
+      //     const { data: sharedData, error: sharedError } = await supabase
+      //       .from('shared_chapters')
+      //       .select('chapter_id')
+      //       .eq('original_user_id', currentUser.id)
+      //       .in('chapter_id', chapterIdsFromLibro);
+      //     if (sharedError) {
+      //       console.error('Errore nel recupero stato condivisione capitoli (da libro):', sharedError);
+      //     } else {
+      //       // setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || [])); // COMMENTATO
+      //     }
+      //   } else {
+      //     // setSharedChapterIds(new Set()); // COMMENTATO
+      //   }
+      // } else {
+      //   // setSharedChapterIds(new Set());  // COMMENTATO
+      // }
     }
     setLoading(false);
-  }, [supabase, initialUser]); // State setters (setLoading, setUser, etc.) are stable and not needed here
+  }, [supabase, initialUser]);
 
   useEffect(() => {
     fetchUserAndBook();
@@ -143,10 +191,10 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
 
   const handleCoverUploadSuccess = (newCoverUrl: string) => {
     setCurrentBook(prevBook => prevBook ? { ...prevBook, cover_image_url: newCoverUrl, updated_at: new Date().toISOString() } : null);
-    setShowCoverUpload(false); // Optionally close the upload UI
+    setShowCoverUpload(false);
   };
 
-  const handleOpenEditModal = (chapter: CapitoloType) => {
+  const handleOpenEditModal = (chapter: LibroCapitolo) => { // MODIFICATO: parametro ora è LibroCapitolo
     setEditingChapter(chapter);
     setEditFormData({ titolo: chapter.titolo, testo: chapter.testo });
     setShowEditModal(true);
@@ -163,31 +211,35 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     setIsProcessingAction(true);
     try {
       const { error } = await supabase
-        .from('capitoli')
+        .from('libro') // MODIFICATO: tabella 'libro'
         .update({
           titolo: editFormData.titolo,
           testo: editFormData.testo,
           updated_at: new Date().toISOString()
         })
-        .eq('id', editingChapter.id)
-        .eq('user_id', user?.id); // Ensure user owns chapter
+        .eq('id', editingChapter.id) // Assumendo che l'ID sia lo stesso tra 'capitoli' e 'libro' per lo stesso contenuto
+        .eq('user_id', user?.id);
 
       if (error) throw error;
 
       setChapters(prev => prev.map(ch =>
-        ch.id === editingChapter.id ? { ...ch, ...editFormData, updated_at: new Date().toISOString() } : ch
+        ch.id === editingChapter.id ? { ...ch,
+                                        titolo: editFormData.titolo,
+                                        testo: editFormData.testo,
+                                        updated_at: new Date().toISOString()
+                                      } : ch
       ));
-      toast.success("Capitolo aggiornato con successo!");
+      toast.success("Capitolo aggiornato con successo nel libro!");
       handleCloseEditModal();
     } catch (err: any) {
-      console.error("Errore aggiornamento capitolo:", err);
+      console.error("Errore aggiornamento capitolo nel libro:", err);
       toast.error(`Errore: ${err.message}`);
     } finally {
       setIsProcessingAction(false);
     }
   };
 
-  const handleOpenDeleteModal = (chapter: CapitoloType) => {
+  const handleOpenDeleteModal = (chapter: LibroCapitolo) => { // MODIFICATO: parametro ora è LibroCapitolo
     setDeletingChapter(chapter);
     setShowDeleteModal(true);
   };
@@ -201,19 +253,26 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     if (!deletingChapter) return;
     setIsProcessingAction(true);
     try {
+      // Elimina il capitolo dalla tabella 'libro'
       const { error } = await supabase
-        .from('capitoli')
-        .update({ stato: 'archivio_cancellato', updated_at: new Date().toISOString() })
+        .from('libro') // MODIFICATO: tabella 'libro'
+        .delete()
         .eq('id', deletingChapter.id)
         .eq('user_id', user?.id);
 
       if (error) throw error;
 
+      // TODO: Decidere cosa fare con il record in 'capitoli'
+      // Opzione: aggiornare lo stato in 'capitoli' a 'bozza_in_archivio' o un nuovo stato 'rimosso_dal_libro'
+      // Per ora, non facciamo nulla con 'capitoli', il record lì rimane 'promosso_al_libro'
+      // Questo potrebbe portare a incoerenze se si prova a ri-promuovere senza logica aggiuntiva.
+      // console.log(`Capitolo ${deletingChapter.id} eliminato da 'libro'. Stato in 'capitoli' non modificato.`);
+
       setChapters(prev => prev.filter(ch => ch.id !== deletingChapter.id));
-      toast.success("Capitolo spostato nell'archivio (cancellato).");
+      toast.success("Capitolo rimosso dal libro con successo.");
       handleCloseDeleteModal();
     } catch (err: any) {
-      console.error("Errore cancellazione capitolo:", err);
+      console.error("Errore rimozione capitolo dal libro:", err);
       toast.error(`Errore: ${err.message}`);
     } finally {
       setIsProcessingAction(false);
@@ -243,12 +302,12 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
         if (error.code === '23505') { // Unique constraint violation (chapter_id)
           toast.info("Questo capitolo è già stato condiviso o c'è un conflitto.");
           // Ensure local state reflects it's shared if DB says so
-          setSharedChapterIds(prev => new Set(prev).add(chapter.id));
+          // setSharedChapterIds(prev => new Set(prev).add(chapter.id)); // TEMPORANEAMENTE COMMENTATO
         } else {
           throw error; // Rethrow other errors
         }
       } else {
-        setSharedChapterIds(prev => new Set(prev).add(chapter.id));
+        // setSharedChapterIds(prev => new Set(prev).add(chapter.id)); // TEMPORANEAMENTE COMMENTATO
         toast.success(`Capitolo "${chapter.titolo}" condiviso con successo! Sarà visibile in "Mondi Paralleli".`);
       }
     } catch (err: any) {
@@ -284,14 +343,14 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
       // but multiple individual updates can work for smaller lists.
       // Here, we'll attempt individual updates.
       // For Supabase upsert to work as update, ensure 'id' is part of the object.
-      const { error } = await supabase.from('capitoli').upsert(updates, {
+      const { error } = await supabase.from('libro').upsert(updates, { // MODIFICATO: tabella 'libro'
         onConflict: 'id', // Specify the conflict target (PK)
         // ignoreDuplicates: false, // Default is false, upsert will update
       });
 
 
       if (error) {
-        console.error('Errore durante l\'aggiornamento dell\'ordine dei capitoli:', error);
+        console.error('Errore durante l\'aggiornamento dell\'ordine dei capitoli nella tabella LIBRO:', error);
         // Optionally revert state or show error to user
         // For simplicity, we'll refetch to ensure consistency if error
         if (user) fetchUserAndBook(); // Refetch to get server state
@@ -447,37 +506,33 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                               snapshot.isDragging ? 'bg-purple-50 shadow-xl' : ''
                             }`}
                           >
-                            <div className="flex items-center gap-3">
-                              <GripVertical className="h-5 w-5 text-muted-foreground" />
-                              <span>{chapter.titolo}</span>
-                              <Badge variant={chapter.stato === 'nel_libro' ? 'default' :
-                                             (chapter.stato === 'bozza_da_archivio' ? 'outline' : 'secondary')}>
-                                {chapter.stato}
-                              </Badge>
+                            {/* CONTENUTO SEMPLIFICATO PER DIAGNOSI */}
+                            <div className="flex-grow">
+                              <GripVertical className="inline h-5 w-5 text-muted-foreground mr-2" />
+                              <span>ID: {chapter.id} - Ordine: {chapter.ordine} - Titolo: {chapter.titolo}</span>
                             </div>
+                            {/* RIPRISTINO PULSANTI DI AZIONE */}
                             <div className="flex items-center space-x-1">
                               <Button variant="ghost" size="icon" className="" onClick={() => handleOpenEditModal(chapter)} disabled={isProcessingAction} title="Modifica">
                                 <Edit className="h-4 w-4" />
                               </Button>
-
-                              {chapter.stato === 'nel_libro' && (
-                                sharedChapterIds.has(chapter.id) ? (
-                                  <span className="text-xs text-green-600 italic px-2">Condiviso</span>
-                                ) : (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className=""
-                                    onClick={() => handleShareChapter(chapter)}
-                                    disabled={isProcessingAction}
-                                    title="Condividi questo capitolo"
-                                  >
-                                    {isProcessingAction && editingChapter?.id !== chapter.id && deletingChapter?.id !== chapter.id ?
-                                     <ActionLoader className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4 text-blue-500" /> }
-                                  </Button>
-                                )
+                              {/* Pulsante Condividi e logica collegata temporaneamente commentati
+                              {sharedChapterIds.has(chapter.id) ? (
+                                <span className="text-xs text-green-600 italic px-2">Condiviso</span>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className=""
+                                  onClick={() => handleShareChapter(chapter)}
+                                  disabled={isProcessingAction}
+                                  title="Condividi questo capitolo"
+                                >
+                                  {isProcessingAction && editingChapter?.id !== chapter.id && deletingChapter?.id !== chapter.id ?
+                                   <ActionLoader className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4 text-blue-500" /> }
+                                </Button>
                               )}
-
+                              */}
                               <Button variant="ghost" size="icon" className="" onClick={() => handleOpenDeleteModal(chapter)} disabled={isProcessingAction} title="Elimina (Archivia)">
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>

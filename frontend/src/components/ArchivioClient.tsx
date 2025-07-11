@@ -81,20 +81,31 @@ export default function ArchivioClient({ user }: { user: User }) {
       setLoading(true);
       setError(null);
 
+      // Query iniziale semplificata senza filtro 'stato' e usando 'timestamp'
       const { data: capitoliData, error: fetchError } = await supabase
         .from('capitoli')
-        .select('*') // Seleziona tutti i campi necessari
+        .select('id, user_id, seme_id, titolo, icona, testo, eco, frase_finale, timestamp, raw_interaction_session_id, stato')
         .eq('user_id', userId)
-        // Filtra per stati rilevanti per l'archivio
-        .in('stato', ['bozza_in_archivio', 'promosso_al_libro'])
-        .order('created_at', { ascending: false });
+        .in('stato', ['bozza_in_archivio', 'promosso_al_libro']) // REINTRODOTTO FILTRO STATO
+        .order('timestamp', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Errore fetch capitoli (ArchivioClient):', fetchError);
+        setError(`Errore caricamento capitoli: ${fetchError.message}`);
+        setCapitoliUtente([]);
+        throw fetchError;
+      }
 
+      console.log('[ARCHIVIO CLIENT] Dati capitoli caricati:', capitoliData);
       setCapitoliUtente(capitoliData || []);
 
     } catch (err) {
-      console.error('Error loading capitoli:', err);
+      // L'errore è già loggato sopra se proviene da fetchError
+      // Questo catch gestirà altri eventuali errori nel blocco try
+      if (!error && err instanceof Error) { // Evita di sovrascrivere l'errore del fetch se già impostato
+         console.error('Error in loadCapitoliUtente (ArchivioClient):', err);
+         setError(`Errore imprevisto nel caricamento: ${err.message}`);
+      }
       const supabaseError = err as any;
       setError(`Errore nel caricamento dell'archivio: ${supabaseError.message || 'Errore sconosciuto'}`);
     } finally {
@@ -160,61 +171,75 @@ export default function ArchivioClient({ user }: { user: User }) {
     setError(null);
 
     try {
+    try {
       // 1. Calcola il prossimo valore di 'ordine' per la tabella 'libro'
       const { data: maxOrderData, error: maxOrderError } = await supabase
         .from('libro')
         .select('ordine')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id) // Assumendo che 'user_id' esista in 'libro' e sia corretto
         .order('ordine', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (maxOrderError) {
-        console.error("Errore nel recuperare max ordine da libro:", maxOrderError);
-        // Non bloccare l'operazione, ma logga. L'ordine potrebbe essere 0.
+        console.error("Errore nel recuperare max ordine da libro:", maxOrderError.message);
+        // Non bloccare, ma logga. L'ordine partirà da 0.
       }
       const newOrder = (maxOrderData?.ordine ?? -1) + 1;
 
       // 2. Prepara i dati per la tabella 'libro'
+      // Colonne tabella 'libro': id, user_id, seme_id, titolo, testo, timestamp, sottotitolo, ordine
       const datiLibro = {
-        user_id: user.id,
+        user_id: user.id, // user_id dell'utente corrente
         titolo: capitolo.titolo,
-        sottotitolo: capitolo.eco?.join(' ') || '', // Mappa eco a sottotitolo
         testo: capitolo.testo,
+        sottotitolo: capitolo.eco?.join(' • ') || '', // Mappa eco a sottotitolo
         seme_id: capitolo.seme_id,
-        icona: capitolo.icona,
-        raw_interaction_session_id: capitolo.raw_interaction_session_id,
+        // icona: capitolo.icona, // La tabella libro non ha 'icona' secondo il riepilogo
+        timestamp: capitolo.timestamp, // Usa il timestamp del capitolo originale
+        raw_interaction_session_id: capitolo.raw_interaction_session_id, // Se vuoi tracciarlo anche qui
         ordine: newOrder,
-        // altri campi se 'libro' li ha e 'capitolo' può fornirli
       };
 
       // 3. Inserisci il nuovo record nella tabella 'libro'
       const { data: libroInserito, error: insertLibroError } = await supabase
         .from('libro')
         .insert(datiLibro)
-        .select() // Per ottenere il record inserito, se necessario
-        .single(); // Se ci si aspetta un solo record
+        .select('id, titolo') // Seleziona solo ciò che serve, es. per un log
+        .single();
 
-      if (insertLibroError) throw insertLibroError;
-      if (!libroInserito) throw new Error("Inserimento nella tabella libro non ha restituito dati.");
+      if (insertLibroError) {
+        console.error('Errore inserimento in tabella libro:', insertLibroError);
+        throw insertLibroError;
+      }
+      if (!libroInserito) {
+        throw new Error("Inserimento nella tabella libro non ha restituito dati confermati.");
+      }
 
-      console.log(`Capitolo "${capitolo.titolo}" copiato in 'libro' con ID: ${libroInserito.id} e ordine: ${newOrder}`);
+      console.log(`Capitolo "${libroInserito.titolo}" (ID sessione: ${capitolo.raw_interaction_session_id}) copiato in 'libro' con ID: ${libroInserito.id} e ordine: ${newOrder}`);
 
       // 4. Aggiorna lo stato del capitolo originale in 'capitoli'
+      // Colonne tabella 'capitoli': id, user_id, seme_id, titolo, icona, testo, eco, frase_finale, timestamp, raw_interaction_session_id, stato
       const { error: updateCapitoloError } = await supabase
         .from('capitoli')
-        .update({ stato: 'promosso_al_libro' })
-        .eq('id', capitolo.id);
+        .update({ stato: 'promosso_al_libro' }) // Usa il valore corretto per lo stato "promosso"
+        .eq('id', capitolo.id) // Filtra per l'ID del capitolo originale
+        .eq('user_id', user.id); // Aggiungi filtro user_id per sicurezza/RLS
 
-      if (updateCapitoloError) throw updateCapitoloError;
+      if (updateCapitoloError) {
+        console.error('Errore aggiornamento stato in tabella capitoli:', updateCapitoloError);
+        // Non bloccare necessariamente l'utente se la copia in 'libro' è andata a buon fine,
+        // ma logga l'errore. Potrebbe essere necessario un meccanismo di compensazione o notifica.
+        alert(`Capitolo aggiunto al libro, ma c'è stato un problema nell'aggiornare lo stato nell'archivio: ${updateCapitoloError.message}`);
+        // Comunque ricarica i dati per vedere lo stato attuale
+      } else {
+        alert(`Capitolo "${capitolo.titolo}" promosso e aggiunto al libro con successo!`);
+      }
 
-      alert(`Capitolo "${capitolo.titolo}" promosso e aggiunto al libro con successo!`);
-
-      // Ricarica i capitoli per riflettere il cambio di stato
-      await loadCapitoliUtente(user.id);
+      await loadCapitoliUtente(user.id); // Ricarica i capitoli per riflettere il cambio di stato
 
     } catch (err: any) {
-      console.error('Errore durante la promozione del capitolo al libro:', err);
+      console.error('Errore generale durante la promozione del capitolo al libro:', err);
       setError(`Errore promozione capitolo: ${err.message || 'Sconosciuto'}`);
     } finally {
       setPromotingToLibro(null);

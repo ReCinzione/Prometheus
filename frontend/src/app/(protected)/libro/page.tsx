@@ -67,10 +67,10 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
   const [loading, setLoading] = useState(true);
   const [showCoverUpload, setShowCoverUpload] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
-  const [sharedChapterIds, setSharedChapterIds] = useState<Set<string>>(new Set());
+  // const [sharedChapterIds, setSharedChapterIds] = useState<Set<string>>(new Set()); // Temporaneamente commentato
 
   // State for editing and deleting chapters
-  const [editingChapter, setEditingChapter] = useState<LibroCapitolo | null>(null); // MODIFICATO
+  const [editingChapter, setEditingChapter] = useState<LibroCapitolo | null>(null);
   const [editFormData, setEditFormData] = useState<{ titolo: string; testo: string }>({ titolo: '', testo: '' });
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -161,27 +161,26 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
         setChapters(loadedChapters);
       }
 
-      // Fetch shared status for these chapters (IDs from 'libro' table)
-      if (currentUser && chapterData && chapterData.length > 0) {
-        const chapterIdsFromLibro = chapterData.map(ch => ch.id);
-        if (chapterIdsFromLibro.length > 0) {
-          const { data: sharedData, error: sharedError } = await supabase
-            .from('shared_chapters')
-            .select('chapter_id')
-            .eq('original_user_id', currentUser.id)
-            .in('chapter_id', chapterIdsFromLibro); // Usa gli ID dei capitoli da 'libro'
-
-          if (sharedError) {
-            console.error('Errore nel recupero stato condivisione capitoli (da libro):', sharedError);
-          } else {
-            setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || []));
-          }
-        } else {
-          setSharedChapterIds(new Set()); // Nessun capitolo da controllare
-        }
-      } else {
-        setSharedChapterIds(new Set()); // Nessun utente o nessun capitolo
-      }
+      // Fetch shared status for these chapters (IDs from 'libro' table) - TEMPORANEAMENTE COMMENTATO
+      // if (currentUser && chapterData && chapterData.length > 0) {
+      //   const chapterIdsFromLibro = chapterData.map(ch => ch.id);
+      //   if (chapterIdsFromLibro.length > 0) {
+      //     const { data: sharedData, error: sharedError } = await supabase
+      //       .from('shared_chapters')
+      //       .select('chapter_id')
+      //       .eq('original_user_id', currentUser.id)
+      //       .in('chapter_id', chapterIdsFromLibro);
+      //     if (sharedError) {
+      //       console.error('Errore nel recupero stato condivisione capitoli (da libro):', sharedError);
+      //     } else {
+      //       setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || []));
+      //     }
+      //   } else {
+      //     // setSharedChapterIds(new Set());
+      //   }
+      // } else {
+      //   // setSharedChapterIds(new Set());
+      // }
     }
     setLoading(false);
   }, [supabase, initialUser]);
@@ -512,8 +511,31 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
                               <GripVertical className="inline h-5 w-5 text-muted-foreground mr-2" />
                               <span>ID: {chapter.id} - Ordine: {chapter.ordine} - Titolo: {chapter.titolo}</span>
                             </div>
+                            {/* RIPRISTINO PULSANTI DI AZIONE */}
                             <div className="flex items-center space-x-1">
-                                {/* Pulsanti rimossi temporaneamente per semplificare, verranno ripristinati */}
+                              <Button variant="ghost" size="icon" className="" onClick={() => handleOpenEditModal(chapter)} disabled={isProcessingAction} title="Modifica">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              {/* Pulsante Condividi e logica collegata temporaneamente commentati
+                              {sharedChapterIds.has(chapter.id) ? (
+                                <span className="text-xs text-green-600 italic px-2">Condiviso</span>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className=""
+                                  onClick={() => handleShareChapter(chapter)}
+                                  disabled={isProcessingAction}
+                                  title="Condividi questo capitolo"
+                                >
+                                  {isProcessingAction && editingChapter?.id !== chapter.id && deletingChapter?.id !== chapter.id ?
+                                   <ActionLoader className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4 text-blue-500" /> }
+                                </Button>
+                              )}
+                              */}
+                              <Button variant="ghost" size="icon" className="" onClick={() => handleOpenDeleteModal(chapter)} disabled={isProcessingAction} title="Elimina (Archivia)">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
                             </div>
                           </Card>
                         )}

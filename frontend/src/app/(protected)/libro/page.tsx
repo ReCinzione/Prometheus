@@ -173,13 +173,13 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
       //     if (sharedError) {
       //       console.error('Errore nel recupero stato condivisione capitoli (da libro):', sharedError);
       //     } else {
-      //       setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || []));
+      //       // setSharedChapterIds(new Set(sharedData?.map(s => s.chapter_id as string) || [])); // COMMENTATO
       //     }
       //   } else {
-      //     // setSharedChapterIds(new Set());
+      //     // setSharedChapterIds(new Set()); // COMMENTATO
       //   }
       // } else {
-      //   // setSharedChapterIds(new Set());
+      //   // setSharedChapterIds(new Set());  // COMMENTATO
       // }
     }
     setLoading(false);

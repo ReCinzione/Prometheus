@@ -51,7 +51,7 @@ export interface Capitolo {
   raw_interaction_session_id: string | null;
   eco: string[] | null;
   frase_finale: string | null;
-  ordine: number | null;
+  // ordine: number | null; // 'ordine' non appartiene a 'capitoli' ma a 'libro'
 }
 
 export default function ArchivioClient({ user }: { user: User }) {

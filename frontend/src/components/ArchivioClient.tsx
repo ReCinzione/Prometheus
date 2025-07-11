@@ -243,7 +243,7 @@ export default function ArchivioClient({ user }: { user: User }) {
       setError(`Errore promozione capitolo: ${err.message || 'Sconosciuto'}`);
     } finally {
       setPromotingToLibro(null);
-    }
+    }; // AGGIUNTO PUNTO E VIRGOLA
   };
 
   const filteredCapitoli = capitoliUtente.filter(capitolo =>

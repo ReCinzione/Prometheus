@@ -41,7 +41,7 @@ import { useRouter } from 'next/navigation'; // For navigation
 // Interfaccia per un capitolo (bozza o promosso)
 export interface Capitolo {
   id: number;
-  created_at: string;
+  timestamp: string; // CORRETTO: da created_at a timestamp
   user_id: string;
   titolo: string;
   testo: string;

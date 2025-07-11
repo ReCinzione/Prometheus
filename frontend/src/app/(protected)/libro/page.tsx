@@ -302,12 +302,12 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
         if (error.code === '23505') { // Unique constraint violation (chapter_id)
           toast.info("Questo capitolo è già stato condiviso o c'è un conflitto.");
           // Ensure local state reflects it's shared if DB says so
-          setSharedChapterIds(prev => new Set(prev).add(chapter.id));
+          // setSharedChapterIds(prev => new Set(prev).add(chapter.id)); // TEMPORANEAMENTE COMMENTATO
         } else {
           throw error; // Rethrow other errors
         }
       } else {
-        setSharedChapterIds(prev => new Set(prev).add(chapter.id));
+        // setSharedChapterIds(prev => new Set(prev).add(chapter.id)); // TEMPORANEAMENTE COMMENTATO
         toast.success(`Capitolo "${chapter.titolo}" condiviso con successo! Sarà visibile in "Mondi Paralleli".`);
       }
     } catch (err: any) {

@@ -305,7 +305,7 @@ export default function ArchivioClient({ user }: { user: User }) {
                 {capitolo.stato === 'bozza_in_archivio' && <Badge variant="outline">Bozza</Badge>}
                 <Badge variant="secondary" className="gap-1">
                   <Calendar className="h-3 w-3" />
-                  {new Date(capitolo.created_at).toLocaleDateString()}
+                  {new Date(capitolo.timestamp).toLocaleDateString()} {/* CORRETTO: da created_at a timestamp */}
                 </Badge>
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4 text-muted-foreground" />

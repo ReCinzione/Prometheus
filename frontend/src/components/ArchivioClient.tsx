@@ -171,7 +171,6 @@ export default function ArchivioClient({ user }: { user: User }) {
     setError(null);
 
     try {
-    try {
       // 1. Calcola il prossimo valore di 'ordine' per la tabella 'libro'
       const { data: maxOrderData, error: maxOrderError } = await supabase
         .from('libro')

@@ -132,3 +132,28 @@ Prima di considerare un task o un fix completo e di sottomettere il codice, è *
 3.  **Verifica Finale del Codice:** Rileggere le modifiche per individuare errori di battitura, incoerenze o errori di logica. Prestare particolare attenzione ai punti elencati nella Sezione 5.
 4.  **(Consigliato) Build Locale:** Eseguire `npm run build` nel frontend per catturare errori di tipo e compilazione prima del deploy.
 5.  **Conferma di Correttezza:** Assicurarsi, al meglio delle proprie capacità, che il codice sia corretto, robusto e completo prima di sottometterlo.
+
+---
+
+## 7. Processo Standard di Debug e Correzione
+
+Per minimizzare l'introduzione di nuovi errori e garantire che le correzioni siano allineate con l'architettura esistente, seguire obbligatoriamente questo processo per risolvere bug, specialmente quelli di runtime (es. errori 500, `NameError`).
+
+1.  **Analisi Rigorosa dell'Errore:**
+    -   **Fonte Primaria:** Basarsi **sempre** sul messaggio di errore completo e sul traceback fornito dai log (es. Render, Vercel).
+    -   **Identificare la Causa Radice:** Identificare la causa esatta dell'errore. Ad esempio, un `NameError: name 'X' is not defined` significa che una funzione, classe o variabile `X` non esiste nello scope in cui viene chiamata.
+
+2.  **Consultare la Documentazione Esistente (`PROJECT_RAG.md`):**
+    -   **Verifica dell'Architettura:** Prima di scrivere qualsiasi codice, verificare se la funzionalità o l'entità che causa l'errore (es. una tabella di database, una funzione helper) è documentata in questo file.
+    -   **Il RAG è la Verità:** Se una funzionalità non è descritta qui, va considerata inesistente o deprecata.
+
+3.  **Principio della Minima Modifica (Least Change Principle):**
+    -   **Non Inventare:** Se una funzione o variabile causa un `NameError` e non è documentata, **non bisogna crearla da zero**. La prima ipotesi deve essere che si tratti di un residuo di codice obsoleto.
+    -   **Azione di Default: Rimuovere:** L'azione correttiva di default per il codice non documentato e non funzionante è la **rimozione**. Eliminare la chiamata alla funzione o il blocco di codice che causa l'errore.
+    -   **Implementare solo se Documentato:** Creare una nuova funzione o classe solo se la sua esistenza è chiaramente implicita o richiesta dalla documentazione esistente ma risulta mancante nel codice.
+
+4.  **Modifiche Atomiche e Incrementali:**
+    -   Risolvere **un solo problema alla volta**. Creare commit e pull request piccoli e mirati. Questo facilita la revisione e, in caso di problemi, l'identificazione della modifica che ha causato l'errore.
+
+5.  **Aggiornare la Documentazione:**
+    -   Se una correzione chiarisce un aspetto dell'architettura o introduce una nuova convenzione (come visto con gli errori di `lifespan` o l'ordine dei modelli Pydantic), aggiornare i file `PROJECT_RAG.md` o `CODING_GUIDELINES.md` di conseguenza. La documentazione deve sempre riflettere lo stato attuale del codice funzionante.

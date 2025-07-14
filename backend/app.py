@@ -221,6 +221,22 @@ JSON:
         task_results[task_id] = {"status": "failed", "error": error_detail, "status_code": status_code}
 
 
+# Inizializzazione dell'applicazione FastAPI
+app = FastAPI(lifespan=lifespan)
+
+# Configurazione CORS più sicura per la produzione
+# In produzione, usa la variabile d'ambiente FRONTEND_URL o consenti tutti gli origini in sviluppo
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+allow_origins = [frontend_url] if frontend_url != "*" else ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Endpoint principale della chat (ora asincrono)
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks):

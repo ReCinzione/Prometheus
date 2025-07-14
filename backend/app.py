@@ -72,37 +72,21 @@ SEMI_DATA: Dict[str, Any] = {}
 # Data store in-memory per i risultati dei task in background
 task_results: Dict[str, Dict[str, Any]] = {}
 
-def log_interaction_to_db(user_id: str, session_id: str, seed_archetype_id: str, interaction_type: str, interaction_data: Dict[str, Any]):
+def create_session_with_retry():
     """
-    Registra un'interazione specifica nel database Supabase.
+    Crea una sessione di requests con una strategia di retry per gestire errori temporanei.
     """
-    if not supabase_client:
-        print("[DB_LOG_ERROR] Supabase client non inizializzato. Impossibile registrare l'interazione.")
-        return
-
-    try:
-        log_entry = {
-            "user_id": user_id,
-            "session_id": session_id,
-            "seed_archetype_id": seed_archetype_id,
-            "interaction_type": interaction_type,
-            "interaction_data": json.dumps(interaction_data), # Assicura che i dati siano in formato JSON string
-            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S%Z', time.gmtime())
-        }
-
-        # Inserisci il record nella tabella 'interactions_log'
-        response = supabase_client.table('interactions_log').insert(log_entry).execute()
-
-        # 'response' di Supabase v2 è un oggetto APIResponse, controlliamo se ci sono errori
-        if response.data:
-             print(f"[DB_LOG_SUCCESS] Interazione registrata con successo: {interaction_type} per sessione {session_id}")
-        # In Supabase v2, un errore solleverà un'eccezione gestita dal blocco except.
-        # Non c'è più un attributo 'error' da controllare come in v1.
-
-    except Exception as e:
-        # Gestione più granulare degli errori sarebbe possibile qui
-        print(f"[DB_LOG_ERROR] Errore durante la registrazione dell'interazione su Supabase: {e}")
-
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 def process_chat_request_background(req: ChatRequest, task_id: str):
     """
@@ -110,13 +94,6 @@ def process_chat_request_background(req: ChatRequest, task_id: str):
     Al termine, aggiorna il dizionario `task_results` con il risultato o l'errore.
     """
     try:
-        # Log initial user input for this interaction number
-        user_input_log_type = f"user_input_{req.interaction_number}"
-        log_interaction_to_db(
-            user_id=req.user_id, session_id=req.session_id, seed_archetype_id=req.seme_id,
-            interaction_type=user_input_log_type, interaction_data={'text': req.user_input}
-        )
-
         # Recupera i dati del seme corrente dal SEMI_DATA caricato
         current_seme_info = SEMI_DATA.get(req.seme_id)
         if not current_seme_info:
@@ -243,11 +220,6 @@ JSON:
 """
 
         gemini_prompt_log_type = f"gemini_prompt_{prompt_log_type_suffix}"
-        log_interaction_to_db(
-            user_id=req.user_id, session_id=req.session_id, seed_archetype_id=req.seme_id,
-            interaction_type=gemini_prompt_log_type,
-            interaction_data={'prompt': prompt.strip()}
-        )
 
         payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.88, "topP": 0.9, "maxOutputTokens": 700}}
         session = create_session_with_retry()
@@ -259,6 +231,42 @@ JSON:
             raise HTTPException(status_code=500, detail="Risposta API incompleta o malformata da Gemini.")
 
         text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+        # Aggiungo qui la funzione che prima non trovavo, mi scuso per l'errore
+        def extract_json_from_text(text: str) -> Dict[str, Any]:
+            """
+            Estrae il primo oggetto JSON valido trovato in una stringa di testo.
+            Utile per pulire le risposte delle API che potrebbero includere testo extra.
+            """
+            # Cerca l'inizio di un oggetto JSON
+            json_start_match = re.search(r'{\s*".*?"\s*:', text)
+            if not json_start_match:
+                return {} # Nessun JSON trovato
+
+            json_start_index = json_start_match.start()
+
+            # Prova a decodificare il JSON dalla posizione trovata
+            try:
+                # La libreria json può gestire spazi bianchi extra alla fine
+                return json.loads(text[json_start_index:])
+            except json.JSONDecodeError:
+                # Se fallisce, potrebbe essere un JSON incompleto. Tentiamo un approccio più robusto
+                # cercando di bilanciare le parentesi graffe.
+                open_braces = 0
+                for i, char in enumerate(text[json_start_index:]):
+                    if char == '{':
+                        open_braces += 1
+                    elif char == '}':
+                        open_braces -= 1
+
+                    if open_braces == 0 and i > 0:
+                        try:
+                            return json.loads(text[json_start_index : json_start_index + i + 1])
+                        except json.JSONDecodeError:
+                            continue # Continua a cercare una fine valida
+
+            return {} # Se tutti i tentativi falliscono
+
         parsed = extract_json_from_text(text)
         
         # ... (Logica di parsing e costruzione della risposta come prima) ...

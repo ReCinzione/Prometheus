@@ -38,7 +38,7 @@ export default function ScriviPage() {
 
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean | 'polling'>(false);
   const [error, setError] = useState<string | null>(null);
   const [raccontoIntro, setRaccontoIntro] = useState<string | null>(null);
   const [showRacconto, setShowRacconto] = useState(false);
@@ -46,6 +46,9 @@ export default function ScriviPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [fase, setFase] = useState<FaseInterazione>('attesa1');
   const [salvataggioStatus, setSalvataggioStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  // State per il polling
+  const [pollingTaskId, setPollingTaskId] = useState<string | null>(null);
 
   // New state variables for session and interaction tracking
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -133,170 +136,149 @@ export default function ScriviPage() {
   // LOGICA SPECIALE PER SEME 99
   const isSeme99 = semeId === "sem_99";
 
+  // Effetto per gestire il polling dei risultati
+  useEffect(() => {
+    if (!pollingTaskId) {
+      return;
+    }
+
+    const maxPollAttempts = 30; // 30 tentativi * 3 secondi = 90 secondi di timeout
+    let pollAttempts = 0;
+
+    const intervalId = setInterval(async () => {
+      if (pollAttempts >= maxPollAttempts) {
+        clearInterval(intervalId);
+        setError("La richiesta ha impiegato troppo tempo a rispondere (timeout del client).");
+        setLoading(false);
+        setPollingTaskId(null);
+        return;
+      }
+
+      pollAttempts++;
+
+      try {
+        const response = await fetch(`/api/get-task-result/${pollingTaskId}`);
+
+        if (!response.ok) {
+          // Se il task non è trovato (404) o altro errore server, interrompi
+          if (response.status === 404) {
+             setError("La richiesta di elaborazione è andata persa. Riprova.");
+          } else {
+             const errorData = await response.json().catch(() => ({ detail: "Errore sconosciuto nel polling." }));
+             setError(errorData.detail || `Errore nel polling: ${response.status}`);
+          }
+          clearInterval(intervalId);
+          setLoading(false);
+          setPollingTaskId(null);
+          return;
+        }
+
+        const result = await response.json();
+
+        if (result.status === 'completed') {
+          clearInterval(intervalId);
+          const assistantResponse: ChatMessage = {
+            type: 'assistant',
+            content: result.data.output,
+            eco: result.data.eco,
+            fraseFinale: result.data.frase_finale,
+            timestamp: new Date(),
+            fase: messages.filter(m => m.type === 'assistant').length === 0 ? 'prima' : 'seconda'
+          };
+          setMessages(prev => [...prev, assistantResponse]);
+          setLoading(false);
+          setPollingTaskId(null);
+
+          // Avanza la fase e salva
+          if (fase === 'attesa1') {
+            setFase('attesa2');
+          } else if (fase === 'attesa2') {
+            setFase('completato');
+            if (userId) {
+              handleAutoSave(assistantResponse);
+            }
+          }
+        } else if (result.status === 'failed') {
+          clearInterval(intervalId);
+          setError(result.error || "Si è verificato un errore durante l'elaborazione.");
+          setLoading(false);
+          setPollingTaskId(null);
+        }
+        // Se lo status è 'processing', non fare nulla, l'intervallo continuerà a chiamare
+
+      } catch (err) {
+        console.error("Errore durante il polling:", err);
+        setError("Errore di connessione durante il polling.");
+        clearInterval(intervalId);
+        setLoading(false);
+        setPollingTaskId(null);
+      }
+    }, 3000); // Poll ogni 3 secondi
+
+    // Funzione di cleanup per l'effetto
+    return () => clearInterval(intervalId);
+  }, [pollingTaskId, fase, messages, userId]); // Dipendenze per l'effetto di polling
+
+
   const handleSendMessage = async () => {
     if (!inputText.trim() || loading || fase === 'completato' || (alreadyWritten && !isSeme99)) return;
 
-    // AGGIUNGI QUESTO BLOCCO DI CONTROLLO
     if (!userId || !sessionId) {
-      setError("Errore critico: ID Utente o ID Sessione non sono stati inizializzati. Per favore, ricarica la pagina o prova a selezionare nuovamente il seme.");
-      setLoading(false); // Assicurati che loading sia false se esci qui
+      setError("Errore critico: ID Utente o ID Sessione non sono stati inizializzati. Ricarica la pagina.");
       return;
     }
-    // FINE BLOCCO DI CONTROLLO
 
-    const userMessage: ChatMessage = {
-      type: 'user',
-      content: inputText,
-      timestamp: new Date()
-    };
-
+    const userMessage: ChatMessage = { type: 'user', content: inputText, timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
-    setLoading(true);
+    setLoading(true); // Stato di caricamento generico per l'invio iniziale
     setError(null);
 
+    const assistantMessages = messages.filter(m => m.type === 'assistant');
+    const isFirstNormalInteraction = assistantMessages.length === 0;
+    const currentInteractionNum = isFirstNormalInteraction ? 0 : 1;
+    const lastAssistantQuestion = assistantMessages.length > 0 ? assistantMessages[assistantMessages.length - 1].fraseFinale : null;
+
     try {
-      if (isSeme99) {
-        // Invio diretto, logica eco
-        if (!userId || !sessionId) {
-          setError("Errore: ID utente o sessione non inizializzati.");
-          setLoading(false);
-          return;
-        }
-        const currentInteractionNumForSeme99 = 0; // Seme 99 is single interaction from this page's perspective
-
-        const response = await fetch(`/api/archetipo-gemini`, { // Use local API route
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            frasi: userMessage.content, // Matches expected 'frasi' in API route
-            nome: selected?.nome || semeId, // Pass 'nome' for semeId construction in API route
-            is_eco_request: true, // Specific to Seme 99 flow
-            user_id: userId,
-            session_id: sessionId,
-            interaction_number: currentInteractionNumForSeme99, // Seme 99 is always first interaction in this context
-            history: messages.map(m => {
-              let contentString = ""; // Default a stringa vuota
-              if (Array.isArray(m.content)) {
-                contentString = m.content.filter(item => item != null).join('\n\n');
-              } else if (m.content != null) {
-                contentString = String(m.content);
-              }
-              return [m.type, contentString];
-            }),
-            last_assistant_question: null
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          const errorMessage = errorData.detail || `Errore HTTP ${response.status}`;
-          throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-
-        const assistantResponse: ChatMessage = {
-          type: 'assistant',
-          content: "",
-          eco: data.eco,
-          fraseFinale: data.frase_finale,
-          timestamp: new Date(),
-          fase: 'seconda'
-        };
-
-        setMessages(prev => [...prev, assistantResponse]);
-        setFase('completato');
-        // NON salvare in archivio per seme 99
-        setSalvataggioStatus('saved');
-        setTimeout(() => setSalvataggioStatus('idle'), 3000);
-        return;
-      }
-
-      const assistantMessages = messages.filter(m => m.type === 'assistant');
-      const isFirstNormalInteraction = assistantMessages.length === 0;
-      const currentInteractionNum = isFirstNormalInteraction ? 0 : 1;
-      
-      // Estrai l'ultima domanda di Prometheus per passarla al backend
-      const lastAssistantQuestion = assistantMessages.length > 0 
-        ? assistantMessages[assistantMessages.length - 1].fraseFinale 
-        : null;
-
-      if (!userId || !sessionId) {
-        setError("Errore: ID utente o sessione non inizializzati.");
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/archetipo-gemini`, { // Use local API route
+      const response = await fetch(`/api/archetipo-gemini`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          frasi: userMessage.content, // Matches 'frasi' in API route
-          // nome: selected?.nome || semeId, // Rimuovo questa riga
-          effective_seme_id: semeId, // 'semeId' qui è quello preso dai searchParams (es. "sem_04")
+          frasi: userMessage.content,
+          effective_seme_id: semeId,
           readable_seme_name: selected?.nome,
-
-          // History per il backend Python (diverso da `messages` state che ha più dettagli)
-          // Il backend Python si aspetta una lista di liste: [type, content_string]
           history: messages.map(m => {
-            let contentString = ""; // Default a stringa vuota
-            if (Array.isArray(m.content)) {
-              contentString = m.content.filter(item => item != null).join('\n\n');
-            } else if (m.content != null) {
-              contentString = String(m.content);
-            }
+            let contentString = Array.isArray(m.content) ? m.content.join('\n\n') : String(m.content || "");
             return [m.type, contentString];
           }),
-          is_first_interaction: isFirstNormalInteraction, // Usato dal backend Python per la logica del prompt
+          is_first_interaction: isFirstNormalInteraction,
           last_assistant_question: lastAssistantQuestion,
-
-          // Nuovi campi per il logging e gestione sessione
           user_id: userId,
           session_id: sessionId,
-          interaction_number: currentInteractionNum // 0 per la prima interazione, 1 per la seconda
+          interaction_number: currentInteractionNum
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData.detail || `Errore HTTP ${response.status}`;
-        throw new Error(errorMessage);
+      // Gestione errore cold start o altri errori di rete immediati
+      if (response.status === 504 || response.status === 502 || !response.ok) {
+         throw new Error(`Il server non è raggiungibile o è in fase di avvio (Errore ${response.status}). Attendi circa un minuto e riprova.`);
       }
 
       const data = await response.json();
 
-      // AGGIUNGI QUESTO LOG DI DEBUG
-      console.log("DEBUG: ScriviPage - Dati ricevuti da /api/archetipo-gemini:", data);
-      // FINE LOG DI DEBUG
-
-      const assistantResponse: ChatMessage = {
-        type: 'assistant',
-        content: data.output,
-        eco: data.eco,
-        fraseFinale: data.frase_finale,
-        timestamp: new Date(),
-        fase: isFirstNormalInteraction ? 'prima' : 'seconda'
-      };
-
-      setMessages(prev => [...prev, assistantResponse]);
-
-      if (fase === 'attesa1') {
-        setFase('attesa2');
-      } else if (fase === 'attesa2') {
-        setFase('completato');
-        if (userId) {
-          await handleAutoSave(assistantResponse);
-        }
+      if (data.task_id) {
+        setLoading('polling'); // Imposta lo stato di polling
+        setPollingTaskId(data.task_id); // Avvia il polling tramite useEffect
+      } else {
+        throw new Error("Risposta API non valida: task_id mancante.");
       }
 
     } catch (err: any) {
-      console.error('API error:', err);
-      // Miglioramento della visualizzazione dell'errore
-      setError(err.message || 'Si è verificato un errore inaspettato. Riprova più tardi.');
-    } finally {
-      setLoading(false);
+      console.error('API error on initial send:', err);
+      setError(err.message || 'Si è verificato un errore. Riprova più tardi.');
+      setLoading(false); // Resetta lo stato di caricamento in caso di errore
     }
+    // 'finally' non è più qui, perché lo stato 'loading' è gestito dal ciclo di polling
   };
 
   const handleAutoSave = async (lastMessage: ChatMessage) => {

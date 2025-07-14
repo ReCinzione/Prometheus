@@ -19,6 +19,36 @@ from contextlib import asynccontextmanager
 # Carica le variabili d'ambiente dal file .env
 load_dotenv()
 
+# --- Modelli Pydantic per la validazione delle richieste e delle risposte ---
+
+class ChatRequest(BaseModel):
+    user_id: str
+    session_id: str
+    seme_id: str
+    interaction_number: int
+    user_input: str
+    history: List[List[Union[str, List[str]]]] = []
+    is_eco_request: bool = False
+    last_assistant_question: Optional[str] = None
+
+class SigilloData(BaseModel):
+    simbolo_dominante: str
+    immagine: str
+    colore: str
+    forma: str
+    codice_sigillo: str
+
+class ChatResponse(BaseModel):
+    output: Union[str, List[str]]
+    eco: List[str]
+    frase_finale: str
+    sigillo: Optional[SigilloData] = None
+
+class ImageGenerationRequest(BaseModel):
+    prompt: str
+    titolo: Optional[str] = None
+    autore: Optional[str] = None
+
 # Configurazione API di Google Gemini
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"

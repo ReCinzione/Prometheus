@@ -221,6 +221,45 @@ JSON:
         task_results[task_id] = {"status": "failed", "error": error_detail, "status_code": status_code}
 
 
+def load_semi_data():
+    """Carica i dati dei semi dal file JSON nel dizionario globale."""
+    global SEMI_DATA
+    try:
+        # Assumiamo che 'semi_data.json' si trovi nella stessa directory di 'app.py'
+        # In un contesto di container o deploy, assicurati che il path sia corretto.
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(current_dir, 'semi_data.json')
+
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            # Trasforma la lista di semi in un dizionario per accesso rapido
+            SEMI_DATA = {seme['id']: seme for seme in data}
+        print(f"[INFO] Dati dei semi caricati con successo da {file_path}. {len(SEMI_DATA)} semi disponibili.")
+    except FileNotFoundError:
+        print(f"[ERROR_CRITICAL] Il file 'semi_data.json' non è stato trovato nel percorso: {file_path}")
+        SEMI_DATA = {} # Assicura che SEMI_DATA sia un dizionario vuoto in caso di errore
+    except json.JSONDecodeError:
+        print(f"[ERROR_CRITICAL] Errore di decodifica JSON nel file 'semi_data.json'.")
+        SEMI_DATA = {}
+    except Exception as e:
+        print(f"[ERROR_CRITICAL] Un errore imprevisto è occorso durante il caricamento di semi_data.json: {e}")
+        SEMI_DATA = {}
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Gestore del ciclo di vita dell'applicazione.
+    Carica i dati all'avvio e li mantiene disponibili per tutta la durata dell'app.
+    """
+    print("[INFO] Avvio dell'applicazione in corso...")
+    # Carica i dati dei semi all'avvio
+    load_semi_data()
+    # Logica di startup completata, l'applicazione può iniziare a gestire le richieste
+    yield
+    # Qui andrebbe la logica di shutdown, se necessaria (es. pulizia, chiusura connessioni)
+    print("[INFO] Spegnimento dell'applicazione.")
+
+
 # Inizializzazione dell'applicazione FastAPI
 app = FastAPI(lifespan=lifespan)
 

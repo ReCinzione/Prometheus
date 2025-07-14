@@ -41,3 +41,43 @@ Durante l'implementazione, si sono verificati alcuni errori di compilazione Type
 7.  Procedere con il testing funzionale.
 
 Seguendo queste linee guida, possiamo ridurre il numero di cicli di debug dovuti a errori di tipo e compilazione, e concentrarci maggiormente sulla logica applicativa e sul testing funzionale.
+
+## Gestione degli Errori di Avvio del Backend (FastAPI)
+
+Un altro errore comune riscontrato durante il deploy, specialmente su piattaforme come Render, è il `NameError` legato alla configurazione dell'applicazione FastAPI.
+
+**Errore Comune Riscontrato:**
+
+1.  **`NameError: name 'lifespan' is not defined` (o simile per `startup`/`shutdown`):**
+    *   **Problema:** L'applicazione FastAPI viene inizializzata con un gestore del ciclo di vita (`lifespan`) che non è stato definito. Questo accade quando si tenta di usare eventi di avvio (es. per caricare dati o inizializzare connessioni) ma la funzione `lifespan` non è implementata o non è nel giusto scope.
+    *   **Lezione:** FastAPI moderno (dalla versione 0.90.0 in poi) utilizza un `async context manager` per gestire gli eventi di avvio e spegnimento. Tentare di passare una variabile non definita causa un crash immediato dell'applicazione all'avvio.
+    *   **Prevenzione:**
+        *   Assicurarsi che, se si utilizza `lifespan`, esista una funzione `async` decorata con `@asynccontextmanager` che gestisca il ciclo di vita.
+        *   Questa funzione deve eseguire le operazioni di avvio, poi usare `yield` per passare il controllo all'applicazione, e infine eseguire le operazioni di spegnimento.
+        *   Verificare che il nome della funzione passata a `FastAPI(lifespan=...)` corrisponda esattamente alla funzione definita.
+
+**Esempio di Implementazione Corretta:**
+
+```python
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+import logging
+
+# Funzione per caricare risorse all'avvio
+def load_my_data():
+    logging.info("Caricamento dati in corso...")
+    # ... logica per caricare file, modelli, etc. ...
+    logging.info("Dati caricati.")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Codice eseguito all'avvio dell'applicazione
+    load_my_data()
+    print("Applicazione avviata.")
+    yield
+    # Codice eseguito allo spegnimento dell'applicazione
+    print("Applicazione in fase di spegnimento.")
+
+# Inizializzazione corretta
+app = FastAPI(lifespan=lifespan)
+```

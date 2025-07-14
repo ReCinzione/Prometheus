@@ -704,12 +704,12 @@ export default function ScriviPage() {
                 onKeyPress={handleKeyPress}
                 placeholder={getPlaceholder()}
                 className="flex-1 min-h-[100px] resize-none border-gray-200 focus:border-purple-300 focus:ring-purple-200"
-                disabled={loading || fase === 'completato'}
+                disabled={!!loading || fase === 'completato'} // CORRETTO
               />
               <div className="flex flex-col space-y-2">
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!inputText.trim() || loading || fase === 'completato'}
+                  disabled={!inputText.trim() || !!loading || fase === 'completato'} // CORRETTO
                   className="bg-purple-500 hover:bg-purple-600 disabled:opacity-50"
                   variant="default"
                   size="default"

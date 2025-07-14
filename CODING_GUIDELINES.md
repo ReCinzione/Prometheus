@@ -81,3 +81,9 @@ async def lifespan(app: FastAPI):
 # Inizializzazione corretta
 app = FastAPI(lifespan=lifespan)
 ```
+
+2.  **Ordine delle Definizioni (`NameError: name 'MyModel' is not defined`):**
+    *   **Problema:** Un `NameError` può verificarsi se un modello Pydantic (es. `ChatRequest`) viene utilizzato come type hint in una funzione (es. un endpoint FastAPI) prima che la classe stessa sia stata definita. Python esegue il codice in modo sequenziale, quindi le definizioni devono precedere il loro utilizzo.
+    *   **Lezione:** La struttura del codice è importante. Anche se l'IDE potrebbe non segnalarlo come errore in tempo reale, può causare un crash all'avvio dell'applicazione.
+    *   **Prevenzione:**
+        *   **Definire prima, usare dopo:** Adottare la convenzione di definire tutti i modelli di dati Pydantic all'inizio del file, subito dopo le importazioni e prima che vengano utilizzati nelle definizioni delle funzioni o degli endpoint. Questo garantisce che siano sempre disponibili quando il codice viene interpretato.

@@ -72,8 +72,39 @@ SEMI_DATA: Dict[str, Any] = {}
 # Data store in-memory per i risultati dei task in background
 task_results: Dict[str, Dict[str, Any]] = {}
 
+def log_interaction_to_db(user_id: str, session_id: str, seed_archetype_id: str, interaction_type: str, interaction_data: Dict[str, Any]):
+    """
+    Registra un'interazione specifica nel database Supabase.
+    """
+    if not supabase_client:
+        print("[DB_LOG_ERROR] Supabase client non inizializzato. Impossibile registrare l'interazione.")
+        return
 
-def process_chat_request_background(req: 'ChatRequest', task_id: str):
+    try:
+        log_entry = {
+            "user_id": user_id,
+            "session_id": session_id,
+            "seed_archetype_id": seed_archetype_id,
+            "interaction_type": interaction_type,
+            "interaction_data": json.dumps(interaction_data), # Assicura che i dati siano in formato JSON string
+            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S%Z', time.gmtime())
+        }
+
+        # Inserisci il record nella tabella 'interactions_log'
+        response = supabase_client.table('interactions_log').insert(log_entry).execute()
+
+        # 'response' di Supabase v2 è un oggetto APIResponse, controlliamo se ci sono errori
+        if response.data:
+             print(f"[DB_LOG_SUCCESS] Interazione registrata con successo: {interaction_type} per sessione {session_id}")
+        # In Supabase v2, un errore solleverà un'eccezione gestita dal blocco except.
+        # Non c'è più un attributo 'error' da controllare come in v1.
+
+    except Exception as e:
+        # Gestione più granulare degli errori sarebbe possibile qui
+        print(f"[DB_LOG_ERROR] Errore durante la registrazione dell'interazione su Supabase: {e}")
+
+
+def process_chat_request_background(req: ChatRequest, task_id: str):
     """
     Questa funzione esegue la logica pesante (chiamata a Gemini) in background.
     Al termine, aggiorna il dizionario `task_results` con il risultato o l'errore.

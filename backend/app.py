@@ -271,7 +271,14 @@ JSON:
         
         # ... (Logica di parsing e costruzione della risposta come prima) ...
         output = parsed.get("output", text)
-        eco = parsed.get("eco", [])
+        eco_raw = parsed.get("eco", [])
+
+        # Sanificazione dell'input di 'eco' per garantire che sia sempre una lista
+        if isinstance(eco_raw, str):
+            eco = [eco_raw]
+        else:
+            eco = eco_raw
+
         frase_finale = parsed.get("frase_finale", "")
         final_sigillo_data = None
         if is_last_interaction_for_normal_seme and parsed.get("sigillo"):

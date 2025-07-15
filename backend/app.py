@@ -347,13 +347,22 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Configurazione CORS più sicura per la produzione
-# In produzione, usa la variabile d'ambiente FRONTEND_URL o consenti tutti gli origini in sviluppo
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-allow_origins = [frontend_url] if frontend_url != "*" else ["*"]
+# Lista di origini consentite. Include l'URL di produzione, URL di anteprima (se esiste) e localhost per lo sviluppo.
+allow_origins = [
+    "http://localhost:3000",
+    "https://librovivente.netlify.app", # URL di produzione
+    # Aggiungi qui eventuali altri URL di anteprima o sviluppo se necessario
+]
+
+# Leggi la variabile d'ambiente per un URL aggiuntivo, se presente
+# Questo permette flessibilità senza hard-coding di tutti gli URL.
+env_frontend_url = os.getenv("FRONTEND_URL")
+if env_frontend_url and env_frontend_url not in allow_origins:
+    allow_origins.append(env_frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=allow_origins, # Usa la lista definita sopra
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

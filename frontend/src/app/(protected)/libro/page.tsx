@@ -369,10 +369,17 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
   };
 
 
-  const handleStampa = useReactToPrint({
-    content: () => componenteLibro.current,
-    documentTitle: 'Libro Vivente',
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handlePrint = useReactToPrint({
+    contentRef: () => componenteLibro.current,
+    onBeforeGetContent: () => setIsPrinting(true),
+    onAfterPrint: () => setIsPrinting(false),
   });
+
+  const handleStampa = () => {
+    handlePrint();
+  };
 
   if (loading) {
     return (
@@ -460,7 +467,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
       )}
 
       {/* Sezione Capitoli (LibroVivente) - This is for PDF export view */}
-      <div className="hidden print:block"> {/* Hide LibroVivente from screen, show only for print */}
+      <div className={isPrinting ? '' : 'hidden'}>
         {user && chapters && currentBook && (
           <LibroVivente
             ref={componenteLibro}

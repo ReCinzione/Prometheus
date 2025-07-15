@@ -54,25 +54,53 @@ export async function POST(req: Request) {
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
+    if (response.status !== 202) {
       const err = await response.text();
-      return NextResponse.json({ error: err }, { status: response.status });
+      console.error(`[API Route] Errore iniziale dal backend: Status ${response.status}`, err);
+      return NextResponse.json({ error: `Errore iniziale dal backend: ${err}` }, { status: response.status });
     }
 
-    const data = await response.json();
-
-    // Log per vedere cosa arriva dal backend Python
-    console.log("[API Route /api/archetipo-gemini] Dati ricevuti dal backend Python:", JSON.stringify(data, null, 2));
-
-    // Controllo essenziale che i campi attesi dal frontend (ScriviPage) siano presenti.
-    // Il backend Python (ChatResponse) dovrebbe garantirli se la risposta è 200 OK.
-    if (data.output === undefined || data.eco === undefined || data.frase_finale === undefined) {
-      console.error("[API Route /api/archetipo-gemini] ERRORE: Risposta dal backend Python non contiene i campi attesi (output, eco, frase_finale). Dati ricevuti:", JSON.stringify(data, null, 2));
-      return NextResponse.json({ error: 'Risposta interna dal server AI non valida o incompleta.', received_data: data }, { status: 500 });
+    const { task_id } = await response.json();
+    if (!task_id) {
+      return NextResponse.json({ error: 'ID del task non ricevuto dal backend.' }, { status: 500 });
     }
 
-    // Inoltra direttamente la risposta completa del backend Python al client
-    return NextResponse.json(data);
+    // --- Inizio Polling ---
+    const startTime = Date.now();
+    const timeout = 55000; // 55 secondi di timeout per il polling
+
+    while (Date.now() - startTime < timeout) {
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Attendi 3 secondi
+
+      const resultResponse = await fetch(`${backendUrl}/api/get-task-result/${task_id}`);
+
+      if (!resultResponse.ok) {
+        // Se l'endpoint di polling stesso dà errore, interrompi e segnala
+        const errText = await resultResponse.text();
+        console.error(`[API Route Polling] Errore durante il polling del task ${task_id}. Status: ${resultResponse.status}`, errText);
+        return NextResponse.json({ error: `Errore durante il recupero del risultato: ${errText}` }, { status: resultResponse.status });
+      }
+
+      const result = await resultResponse.json();
+
+      if (result.status === 'completed') {
+        console.log(`[API Route Polling] Task ${task_id} completato. Dati ricevuti:`, result.data);
+        // I dati finali sono in result.data
+        return NextResponse.json(result.data);
+      }
+
+      if (result.status === 'failed') {
+        console.error(`[API Route Polling] Task ${task_id} fallito. Errore:`, result.error);
+        return NextResponse.json({ error: `Il task è fallito: ${result.error}` }, { status: result.status_code || 500 });
+      }
+
+      // Se lo stato è 'processing', il loop continua
+      console.log(`[API Route Polling] Task ${task_id} ancora in elaborazione...`);
+    }
+
+    // Se usciamo dal loop a causa del timeout
+    console.error(`[API Route Polling] Timeout per il task ${task_id}.`);
+    return NextResponse.json({ error: 'La richiesta ha impiegato troppo tempo per essere elaborata.' }, { status: 504 });
   } catch (error) {
     console.error('Errore nella route /api/archetipo-gemini:', error);
     return NextResponse.json({ error: 'Errore interno del server' }, { status: 500 });

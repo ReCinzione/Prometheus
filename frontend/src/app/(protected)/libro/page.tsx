@@ -369,16 +369,16 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
   };
 
 
-  const [isPrinting, setIsPrinting] = useState(false);
-
   const handlePrint = useReactToPrint({
     content: () => componenteLibro.current,
-    onBeforeGetContent: () => setIsPrinting(true),
-    onAfterPrint: () => setIsPrinting(false),
   });
 
   const handleStampa = () => {
-    handlePrint();
+    // Manually trigger print
+    const toPrint = componenteLibro.current;
+    if (toPrint) {
+      handlePrint(null, () => toPrint);
+    }
   };
 
   if (loading) {

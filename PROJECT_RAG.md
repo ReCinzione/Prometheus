@@ -123,7 +123,7 @@ Per evitare timeout del browser e di Netlify dovuti a risposte lente dell'AI o a
 
 4.  **Gestione di `react-to-print`:**
     - **Errore Comune:** La libreria `react-to-print` può avere problemi di tipo a seconda della versione di `@types/react` installata.
-    - **Regola:** Usare la prop `content` che accetta una funzione che ritorna il `ref` al componente da stampare. Inoltre, è bene usare lo stato `isPrinting` per montare il componente di stampa solo quando necessario.
+    - **Regola:** Usare la prop `print` per triggerare manualmente la stampa.
 
 ---
 

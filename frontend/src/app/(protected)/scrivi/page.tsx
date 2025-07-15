@@ -142,6 +142,7 @@ export default function ScriviPage() {
       return;
     }
 
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     const maxPollAttempts = 30; // 30 tentativi * 3 secondi = 90 secondi di timeout
     let pollAttempts = 0;
 
@@ -157,15 +158,15 @@ export default function ScriviPage() {
       pollAttempts++;
 
       try {
-        const response = await fetch(`/api/get-task-result/${pollingTaskId}`);
+        // Chiama direttamente il backend Python per il polling
+        const response = await fetch(`${backendUrl}/api/get-task-result/${pollingTaskId}`);
 
         if (!response.ok) {
-          // Se il task non è trovato (404) o altro errore server, interrompi
           if (response.status === 404) {
              setError("La richiesta di elaborazione è andata persa. Riprova.");
           } else {
-             const errorData = await response.json().catch(() => ({ detail: "Errore sconosciuto nel polling." }));
-             setError(errorData.detail || `Errore nel polling: ${response.status}`);
+             const errorData = await response.json().catch(() => ({ error: "Errore sconosciuto nel polling." }));
+             setError(errorData.error || `Errore nel polling: ${response.status}`);
           }
           clearInterval(intervalId);
           setLoading(false);
@@ -189,7 +190,6 @@ export default function ScriviPage() {
           setLoading(false);
           setPollingTaskId(null);
 
-          // Avanza la fase e salva
           if (fase === 'attesa1') {
             setFase('attesa2');
           } else if (fase === 'attesa2') {
@@ -204,8 +204,6 @@ export default function ScriviPage() {
           setLoading(false);
           setPollingTaskId(null);
         }
-        // Se lo status è 'processing', non fare nulla, l'intervallo continuerà a chiamare
-
       } catch (err) {
         console.error("Errore durante il polling:", err);
         setError("Errore di connessione durante il polling.");
@@ -213,11 +211,10 @@ export default function ScriviPage() {
         setLoading(false);
         setPollingTaskId(null);
       }
-    }, 3000); // Poll ogni 3 secondi
+    }, 3000);
 
-    // Funzione di cleanup per l'effetto
     return () => clearInterval(intervalId);
-  }, [pollingTaskId, fase, messages, userId]); // Dipendenze per l'effetto di polling
+  }, [pollingTaskId, fase, messages, userId]);
 
 
   const handleSendMessage = async () => {

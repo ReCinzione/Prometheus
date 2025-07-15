@@ -54,53 +54,15 @@ export async function POST(req: Request) {
       body: JSON.stringify(payload),
     });
 
-    if (response.status !== 202) {
+    // La route API ora inoltra solo la richiesta iniziale e restituisce la risposta del backend,
+    // che dovrebbe includere il task_id per il client per fare il polling.
+    if (!response.ok) {
       const err = await response.text();
-      console.error(`[API Route] Errore iniziale dal backend: Status ${response.status}`, err);
-      return NextResponse.json({ error: `Errore iniziale dal backend: ${err}` }, { status: response.status });
+      return NextResponse.json({ error: err }, { status: response.status });
     }
 
-    const { task_id } = await response.json();
-    if (!task_id) {
-      return NextResponse.json({ error: 'ID del task non ricevuto dal backend.' }, { status: 500 });
-    }
-
-    // --- Inizio Polling ---
-    const startTime = Date.now();
-    const timeout = 55000; // 55 secondi di timeout per il polling
-
-    while (Date.now() - startTime < timeout) {
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Attendi 3 secondi
-
-      const resultResponse = await fetch(`${backendUrl}/api/get-task-result/${task_id}`);
-
-      if (!resultResponse.ok) {
-        // Se l'endpoint di polling stesso dà errore, interrompi e segnala
-        const errText = await resultResponse.text();
-        console.error(`[API Route Polling] Errore durante il polling del task ${task_id}. Status: ${resultResponse.status}`, errText);
-        return NextResponse.json({ error: `Errore durante il recupero del risultato: ${errText}` }, { status: resultResponse.status });
-      }
-
-      const result = await resultResponse.json();
-
-      if (result.status === 'completed') {
-        console.log(`[API Route Polling] Task ${task_id} completato. Dati ricevuti:`, result.data);
-        // I dati finali sono in result.data
-        return NextResponse.json(result.data);
-      }
-
-      if (result.status === 'failed') {
-        console.error(`[API Route Polling] Task ${task_id} fallito. Errore:`, result.error);
-        return NextResponse.json({ error: `Il task è fallito: ${result.error}` }, { status: result.status_code || 500 });
-      }
-
-      // Se lo stato è 'processing', il loop continua
-      console.log(`[API Route Polling] Task ${task_id} ancora in elaborazione...`);
-    }
-
-    // Se usciamo dal loop a causa del timeout
-    console.error(`[API Route Polling] Timeout per il task ${task_id}.`);
-    return NextResponse.json({ error: 'La richiesta ha impiegato troppo tempo per essere elaborata.' }, { status: 504 });
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Errore nella route /api/archetipo-gemini:', error);
     return NextResponse.json({ error: 'Errore interno del server' }, { status: 500 });

@@ -375,7 +375,6 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
     content: () => componenteLibro.current,
     onBeforeGetContent: () => setIsPrinting(true),
     onAfterPrint: () => setIsPrinting(false),
-    removeAfterPrint: true,
   });
 
   const handleStampa = () => {

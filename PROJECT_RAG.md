@@ -121,6 +121,10 @@ Per evitare timeout del browser e di Netlify dovuti a risposte lente dell'AI o a
     -   **Errore Comune:** Omissione di props richieste come `variant`, `size`, o `className` durante l'uso di componenti come `Button`.
     -   **Regola:** Anche se non si intende modificare lo stile di default, se una prop è richiesta dal tipo del componente, deve essere fornita.
 
+4.  **Gestione di `react-to-print`:**
+    - **Errore Comune:** La libreria `react-to-print` può avere problemi di tipo a seconda della versione di `@types/react` installata.
+    - **Regola:** Usare la prop `content` che accetta una funzione che ritorna il `ref` al componente da stampare. Inoltre, è bene usare lo stato `isPrinting` per montare il componente di stampa solo quando necessario.
+
 ---
 
 ## 6. Processo di Modifica Obbligatorio

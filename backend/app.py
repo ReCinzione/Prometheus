@@ -222,8 +222,12 @@ JSON:
         gemini_prompt_log_type = f"gemini_prompt_{prompt_log_type_suffix}"
 
         payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.88, "topP": 0.9, "maxOutputTokens": 700}}
+
+        print(f"[INFO] Task {task_id}: Inizio chiamata a Gemini API per seme {req.seme_id}.")
         session = create_session_with_retry()
         response = session.post(GEMINI_URL, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+        print(f"[INFO] Task {task_id}: Chiamata a Gemini API completata con status {response.status_code}.")
+
         response.raise_for_status()
         data = response.json()
         
@@ -287,13 +291,16 @@ JSON:
         chat_response_data = ChatResponse(output=output, eco=eco, frase_finale=frase_finale, sigillo=final_sigillo_data).dict()
         task_results[task_id] = {"status": "completed", "data": chat_response_data}
 
+    except requests.exceptions.Timeout:
+        print(f"[BACKGROUND_TASK_ERROR] Timeout nel task {task_id} durante la chiamata a Gemini.")
+        task_results[task_id] = {"status": "failed", "error": "Il servizio AI ha impiegato troppo tempo a rispondere.", "status_code": 504}
+    except requests.exceptions.RequestException as e:
+        print(f"[BACKGROUND_TASK_ERROR] Errore di rete nel task {task_id}: {e}")
+        task_results[task_id] = {"status": "failed", "error": f"Errore di comunicazione con il servizio AI: {e}", "status_code": 502}
     except Exception as e:
-        print(f"[BACKGROUND_TASK_ERROR] Errore nel task {task_id}: {e}")
-        error_detail = str(e.detail) if isinstance(e, HTTPException) else str(e)
-        status_code = e.status_code if isinstance(e, HTTPException) else 500
-        if isinstance(e, requests.exceptions.Timeout):
-            error_detail = "Il servizio AI ha impiegato troppo tempo a rispondere."
-            status_code = 504
+        print(f"[BACKGROUND_TASK_ERROR] Errore generico nel task {task_id}: {e}")
+        error_detail = str(getattr(e, 'detail', e))
+        status_code = getattr(e, 'status_code', 500)
         task_results[task_id] = {"status": "failed", "error": error_detail, "status_code": status_code}
 
 

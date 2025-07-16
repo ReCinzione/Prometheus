@@ -369,10 +369,13 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
   };
 
 
-  const handleStampa = useReactToPrint({
-    contentRef: () => componenteLibro.current,
-    documentTitle: 'Libro Vivente',
-  });
+  const handlePrint = useReactToPrint();
+
+  const handleStampa = () => {
+    if (componenteLibro.current) {
+      handlePrint(componenteLibro.current);
+    }
+  };
 
   if (loading) {
     return (

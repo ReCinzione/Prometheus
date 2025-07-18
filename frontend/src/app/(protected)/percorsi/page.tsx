@@ -62,38 +62,6 @@ export default function PercorsiPage() {
   const isUnlocked = (archetipo: Archetipo) =>
     archetipo.semi.every((id) => completedSemi.includes(id)) && !revealed[archetipo.id];
 
-  const handleReveal = async (archetipo: Archetipo) => {
-    setActiveArchetipo(archetipo);
-    setAiLoading(true);
-    setAiError(null);
-    // Recupera le frasi finali dai capitoli corrispondenti
-    const { data } = await supabase
-      .from("capitoli")
-      .select("frase_finale, titolo")
-      .eq("user_id", userId)
-      .in("seme_id", archetipo.semi.map((id) => `sem_${id.toString().padStart(2, "0")}`));
-    const frasi = data?.map((d: any) => d.frase_finale).filter(Boolean).join(" ") || "";
-    // Chiamata API Gemini
-    const response = await fetch("/api/archetipo-gemini", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        frasi,
-        descrizione: archetipo.descrizione,
-        nome: archetipo.nome,
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok || !result.titolo || !result.testo) {
-      setAiError(result.error || "Errore nella generazione dell'archetipo. Riprova più tardi.");
-      setActiveArchetipo(null);
-      setAiLoading(false);
-      return;
-    }
-    setAiText(result.testo);
-    setAiTitle(result.titolo);
-    setAiLoading(false);
-  };
 
   const handleSave = async () => {
     if (!activeArchetipo) return;
@@ -176,9 +144,7 @@ export default function PercorsiPage() {
                     <div className="italic text-gray-700">{revealed[archetipo.id].titolo}</div>
                   </div>
                 ) : unlocked ? (
-                  <Button variant="default" size="default" className="" onClick={() => handleReveal(archetipo)} disabled={aiLoading}>
-                    {aiLoading && activeArchetipo?.id === archetipo.id ? "Generazione..." : "Rivelazione"}
-                  </Button>
+                  <div className="text-green-400">Sbloccato</div>
                 ) : (
                   <div className="text-gray-400">Completa i semi richiesti per sbloccare</div>
                 )}
@@ -187,40 +153,6 @@ export default function PercorsiPage() {
           );
         })}
       </div>
-      {/* Flow di rivelazione e modifica */}
-      {activeArchetipo && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full">
-            <h2 className="text-2xl font-bold mb-2">{activeArchetipo.nome}</h2>
-            <p className="mb-4 text-gray-600">{activeArchetipo.descrizione}</p>
-            <input
-              className="w-full border p-2 mb-2 rounded"
-              value={aiTitle}
-              onChange={e => setAiTitle(e.target.value)}
-              placeholder="Titolo"
-            />
-            <textarea
-              className="w-full border p-2 mb-2 rounded min-h-[120px]"
-              value={aiText}
-              onChange={e => setAiText(e.target.value)}
-              placeholder="Testo generato dall&apos;AI..."
-            />
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="default" className="" onClick={() => setActiveArchetipo(null)}>Annulla</Button>
-              <Button variant="default" size="default" className="" onClick={handleSave} disabled={!aiText.trim()}>Aggiungi all&apos;Archivio</Button>
-            </div>
-          </div>
-        </div>
-      )}
-      {aiError && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
-            <h2 className="text-xl font-bold mb-4 text-red-600">Errore</h2>
-            <p className="mb-4 text-gray-700">{aiError}</p>
-            <Button variant="default" size="default" className="" onClick={() => setAiError(null)}>Chiudi</Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

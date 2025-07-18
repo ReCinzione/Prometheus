@@ -196,7 +196,6 @@ export default function ArchivioClient({ user }: { user: User }) {
         seme_id: capitolo.seme_id,
         // icona: capitolo.icona, // La tabella libro non ha 'icona' secondo il riepilogo
         timestamp: capitolo.timestamp, // Usa il timestamp del capitolo originale
-        raw_interaction_session_id: capitolo.raw_interaction_session_id, // Se vuoi tracciarlo anche qui
         ordine: newOrder,
       };
 

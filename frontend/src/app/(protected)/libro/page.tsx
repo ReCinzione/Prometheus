@@ -460,7 +460,7 @@ export default function LibroPage({ user: initialUser }: LibroPageProps = {}) {
       )}
 
       {/* Sezione Capitoli (LibroVivente) - This is for PDF export view */}
-      <div className={isPrinting ? '' : 'hidden'}>
+      <div className="print:block hidden">
         {user && chapters && currentBook && (
           <LibroVivente
             ref={componenteLibro}

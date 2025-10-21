@@ -1,0 +1,20 @@
+services:
+  # Backend service
+  - type: web
+    name: prometheus-backend
+    env: python
+    # rootDir: backend # Temporarily commented out for debugging
+    buildCommand: pwd && ls -la && pip install -r backend/requirements.txt # Modified for debugging
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false # Imposta su true se hai configurato questo segreto nella dashboard di Render
+      - key: FRONTEND_URL
+        value: ${FRONTEND_URL} # URL del frontend su Vercel
+      - key: PORT
+        value: 8000
+    # Assicurati che semi_data.json sia disponibile nel deployment
+    disk:
+      name: semi-data
+      mountPath: /opt/render/project/src/
+      sizeGB: 1

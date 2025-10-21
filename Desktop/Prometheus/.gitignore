@@ -1,0 +1,31 @@
+# Node.js
+node_modules/
+.env.local
+.env
+.DS_Store
+
+# Next.js
+.next/
+out/
+
+# Frontend Specific (anche se "node_modules/" e ".next/" in root bastano spesso, è meglio essere espliciti per i monorepo)
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/.env
+
+# Python
+__pycache__/
+.venv/
+venv/
+backend/__pycache__/
+backend/venv/
+backend/.env
+backend/.env.local
+
+# IDEs e altri file di sistema
+.vscode/
+.idea/
+*.log
+*.tmp
+*.swp

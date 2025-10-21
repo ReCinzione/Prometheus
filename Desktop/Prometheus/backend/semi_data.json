@@ -1,0 +1,581 @@
+[
+  {
+    "id": "sem_01",
+    "nome": "La Radice Dimenticata",
+    "icona": "🌱",
+    "prompt_base": "Racconta qualcosa che ti appartiene da sempre, ma che a volte dimentichi di avere. Non dire cos'è, mostrane la presenza nei gesti quotidiani.",
+    "eco": [
+      "Una radice nascosta che pulsa sotto la pelle.",
+      "Un gesto automatico che racconta la tua origine.",
+      "Una voce interiore che ritorna nei silenzi."
+    ],
+    "frase_finale": "Cosa resta, quando dimentichi chi sei?",
+    "sigillo": {
+      "simbolo_dominante": "🌱",
+      "immagine": "una radice che abbraccia il vuoto",
+      "colore": "#228B22",
+      "forma": "cerchio radiale",
+      "codice_sigillo": "SIG-01-RADICE"
+    }
+  },
+  {
+    "id": "sem_02",
+    "nome": "Il Seme del Desiderio",
+    "icona": "🌟",
+    "prompt_base": "Descrivi un desiderio che hai coltivato in silenzio. Come si manifesta nella tua vita quotidiana?",
+    "eco": [
+      "Un sussurro costante nel cuore.",
+      "Un'ombra che danza nei tuoi sogni.",
+      "Una luce che guida i tuoi passi."
+    ],
+    "frase_finale": "Il desiderio silenzioso è la voce dell'anima.",
+    "sigillo": {
+      "simbolo_dominante": "🌟",
+      "immagine": "una stella che emerge dall'oscurità",
+      "colore": "#FFD700",
+      "forma": "spirale ascendente",
+      "codice_sigillo": "SIG-02-DESIDERIO"
+    }
+  },
+  {
+    "id": "sem_03",
+    "nome": "La Fame che Ti Muove",
+    "icona": "🔥",
+    "prompt_base": "Evoca una scena che avresti voluto vivere ma che non hai mai osato iniziare. Immaginala nei dettagli come se stesse accadendo ora. Scrivi come se fosse un sogno che ritorna, ardente e incompiuto.",
+    "eco": [
+      "Una bocca spalancata che non ha voce, ma luce.",
+      "Una vena sottopelle che pulsa fuori dal ritmo.",
+      "Una fiamma che non brucia nulla, ma si rifiuta di spegnersi."
+    ],
+    "frase_finale": "Cosa chiameresti, se sapessi che nessuno risponderà?",
+    "sigillo": {
+      "simbolo_dominante": "🔥",
+      "immagine": "una fiamma che emerge da una bocca chiusa",
+      "colore": "#D64550",
+      "forma": "spirale interna",
+      "codice_sigillo": "SIG-03-VOCE-FAME"
+    }
+  },
+  {
+    "id": "sem_04",
+    "nome": "Il Vuoto Creativo",
+    "icona": "🌀",
+    "prompt_base": "Parla di un momento in cui il silenzio ha generato una nuova idea o prospettiva.",
+    "eco": [
+      "Il silenzio come culla della creazione.",
+      "Un'idea nata dal nulla.",
+      "La quiete che precede l'ispirazione."
+    ],
+    "frase_finale": "Dal vuoto nasce l'infinito.",
+    "sigillo": {
+      "simbolo_dominante": "🌀",
+      "immagine": "una spirale che si espande",
+      "colore": "#6A5ACD",
+      "forma": "cerchio concentrico",
+      "codice_sigillo": "SIG-04-VUOTO"
+    }
+  },
+  {
+    "id": "sem_05",
+    "nome": "La Maschera Interiore",
+    "icona": "🎭",
+    "prompt_base": "Racconta di una maschera che indossi e di ciò che cela.",
+    "eco": [
+      "Un volto nascosto dietro un sorriso.",
+      "La verità celata agli occhi del mondo.",
+      "Un'identità costruita per proteggere."
+    ],
+    "frase_finale": "La maschera rivela ciò che teme di mostrare.",
+    "sigillo": {
+      "simbolo_dominante": "🎭",
+      "immagine": "una maschera che si dissolve",
+      "colore": "#FF69B4",
+      "forma": "mezzaluna",
+      "codice_sigillo": "SIG-05-MASCHERA"
+    }
+  },
+  {
+    "id": "sem_06",
+    "nome": "Il Ponte Spezzato",
+    "icona": "🌉",
+    "prompt_base": "Descrivi un legame interrotto e ciò che ha lasciato dietro di sé.",
+    "eco": [
+      "Un ponte che non conduce più da nessuna parte.",
+      "Ricordi sospesi nel tempo.",
+      "Un'assenza che parla più di mille presenze."
+    ],
+    "frase_finale": "I ponti spezzati raccontano storie mai concluse.",
+    "sigillo": {
+      "simbolo_dominante": "🌉",
+      "immagine": "un ponte interrotto a metà",
+      "colore": "#708090",
+      "forma": "arco incompleto",
+      "codice_sigillo": "SIG-06-PONTE"
+    }
+  },
+  {
+    "id": "sem_07",
+    "nome": "La Luce Nascosta",
+    "icona": "💡",
+    "prompt_base": "Parla di una verità che hai scoperto inaspettatamente.",
+    "eco": [
+      "Una luce che filtra tra le crepe.",
+      "La chiarezza che segue la confusione.",
+      "Un'illuminazione improvvisa."
+    ],
+    "frase_finale": "La luce più brillante nasce dall'oscurità.",
+    "sigillo": {
+      "simbolo_dominante": "💡",
+      "immagine": "una lampadina accesa nel buio",
+      "colore": "#FFFF00",
+      "forma": "raggio divergente",
+      "codice_sigillo": "SIG-07-LUCE"
+    }
+  },
+  {
+    "id": "sem_08",
+    "nome": "Il Giardino Segreto",
+    "icona": "🌸",
+    "prompt_base": "Descrivi un luogo, reale o immaginario, dove ti senti completamente te stesso.",
+    "eco": [
+      "Un rifugio nascosto agli occhi del mondo.",
+      "Fiori che sbocciano solo per te.",
+      "Un angolo di pace interiore."
+    ],
+    "frase_finale": "Il giardino segreto fiorisce nel cuore di chi lo custodisce.",
+    "sigillo": {
+      "simbolo_dominante": "🌸",
+      "immagine": "un fiore che sboccia in un luogo nascosto",
+      "colore": "#FFB6C1",
+      "forma": "fiore a cinque petali",
+      "codice_sigillo": "SIG-08-GIARDINO"
+    }
+  },
+  {
+    "id": "sem_09",
+    "nome": "La Voce del Silenzio",
+    "icona": "🤫",
+    "prompt_base": "Racconta di un momento in cui il silenzio ha detto più di mille parole.",
+    "eco": [
+      "Un silenzio carico di significato.",
+      "L'assenza di parole come forma di comunicazione.",
+      "Un momento di comprensione senza bisogno di parlare."
+    ],
+    "frase_finale": "Il silenzio è la lingua dell'anima.",
+    "sigillo": {
+      "simbolo_dominante": "🤫",
+      "immagine": "una bocca chiusa con un dito sulle labbra",
+      "colore": "#A9A9A9",
+      "forma": "linea retta",
+      "codice_sigillo": "SIG-09-SILENZIO"
+    }
+  },
+  {
+    "id": "sem_10",
+    "nome": "Il Cammino Infinito",
+    "icona": "🛤️",
+    "prompt_base": "Descrivi un percorso che hai intrapreso senza sapere dove ti avrebbe portato.",
+    "eco": [
+      "Passi che si susseguono senza fine.",
+      "Una strada che si svela passo dopo passo.",
+      "Il viaggio come destinazione."
+    ],
+    "frase_finale": "Il cammino è la meta.",
+    "sigillo": {
+      "simbolo_dominante": "🛤️",
+      "immagine": "una strada che si perde all'orizzonte",
+      "colore": "#8B4513",
+      "forma": "linea ondulata",
+      "codice_sigillo": "SIG-10-CAMMINO"
+    }
+  },
+  {
+    "id": "sem_11",
+    "nome": "Il Riflesso dell'Anima",
+    "icona": "🔮",
+    "prompt_base": "Parla di un momento in cui ti sei visto attraverso gli occhi di qualcun altro.",
+    "eco": [
+      "Uno specchio che mostra più di un'immagine.",
+      "Il riconoscersi in uno sguardo altrui.",
+      "Un riflesso che rivela l'essenza."
+    ],
+    "frase_finale": "L'anima si riflette negli occhi che la vedono.",
+    "sigillo": {
+      "simbolo_dominante": "🔮",
+      "immagine": "uno specchio che riflette una luce interiore",
+      "colore": "#ADD8E6",
+      "forma": "ellisse",
+      "codice_sigillo": "SIG-11-RIFLESSO"
+    }
+  },
+  {
+    "id": "sem_12",
+    "nome": "La Danza delle Ombre",
+    "icona": "🕺",
+    "prompt_base": "Descrivi un momento in cui hai abbracciato una parte di te che solitamente nascondi.",
+    "eco": [
+      "Un'ombra che si muove al ritmo del cuore.",
+      "La bellezza nell'imperfezione danzata.",
+      "Un riflesso che finalmente si lascia guardare."
+    ],
+    "frase_finale": "Ciò che accogli smette di inseguirti.",
+    "sigillo": {
+      "simbolo_dominante": "🕺",
+      "immagine": "due ombre che danzano in un abbraccio",
+      "colore": "#8B008B",
+      "forma": "cerchio spezzato che si chiude",
+      "codice_sigillo": "SIG-12-DANZA"
+    }
+  },
+  {
+    "id": "sem_13",
+    "nome": "L'Ombra Che Ti Cammina Accanto",
+    "icona": "🌑",
+    "prompt_base": "Scrivi di un tratto di te che ti spaventa ma che sai essere parte della tua forza.",
+    "eco": [
+      "Un'ombra che osserva senza parlare.",
+      "Un impulso che non si spegne con la ragione.",
+      "La forza nascosta nella parte dimenticata."
+    ],
+    "frase_finale": "La tua ombra non ti segue: ti precede in assenza di luce.",
+    "sigillo": {
+      "simbolo_dominante": "🌑",
+      "immagine": "un'ombra che abbraccia un passo",
+      "colore": "#1C1C1C",
+      "forma": "semicerchio",
+      "codice_sigillo": "SIG-13-OMBRA"
+    }
+  },
+  {
+    "id": "sem_14",
+    "nome": "La Ferita Che Insegna",
+    "icona": "💔",
+    "prompt_base": "Scrivi della ferita che ti ha cambiato, non descrivendola, ma narrando ciò che è nato da essa.",
+    "eco": [
+      "Una cicatrice che fiorisce a ogni inverno.",
+      "Un ricordo che non fa più male, ma guida.",
+      "La forma nuova che ha preso il tuo passo."
+    ],
+    "frase_finale": "La ferita è un maestro silenzioso.",
+    "sigillo": {
+      "simbolo_dominante": "💔",
+      "immagine": "una crepa da cui cresce un fiore",
+      "colore": "#B22222",
+      "forma": "linea spezzata",
+      "codice_sigillo": "SIG-14-FERITA"
+    }
+  },
+  {
+    "id": "sem_15",
+    "nome": "Il Gesto Non Compiuto",
+    "icona": "🤚",
+    "prompt_base": "Descrivi un gesto che non hai fatto. Una mano non alzata, un passo non compiuto. Fermati nell'istante prima, e raccontalo.",
+    "eco": [
+      "Un piede sollevato nell'attimo del dubbio.",
+      "Un braccio che trema senza tendersi.",
+      "L'aria densa tra pensiero e azione."
+    ],
+    "frase_finale": "Ciò che trattieni ti plasma più di ciò che compi.",
+    "sigillo": {
+      "simbolo_dominante": "🤚",
+      "immagine": "una mano ferma sull'orlo",
+      "colore": "#696969",
+      "forma": "pietra squadrata",
+      "codice_sigillo": "SIG-15-GESTO"
+    }
+  },
+  {
+    "id": "sem_16",
+    "nome": "Il Corpo che Ricorda",
+    "icona": "🧍",
+    "prompt_base": "Descrivi una parte del tuo corpo che trattiene un ricordo. Non raccontare l'evento: parla solo delle sensazioni che emergono quando ci pensi.",
+    "eco": [
+      "Un muscolo che trema senza motivo.",
+      "Una pelle che si tende al pensiero.",
+      "Un battito che accelera per nulla."
+    ],
+    "frase_finale": "Il corpo non dimentica ciò che l'anima tace.",
+    "sigillo": {
+      "simbolo_dominante": "🧍",
+      "immagine": "una cicatrice che pulsa di luce",
+      "colore": "#5D6D7E",
+      "forma": "linea nervosa",
+      "codice_sigillo": "SIG-16-CORPO"
+    }
+  },
+  {
+    "id": "sem_17",
+    "nome": "Il Tempo Che Ti Attraversa",
+    "icona": "🕰️",
+    "prompt_base": "Racconta una situazione che si è ripetuta più volte nella tua vita, ma che ogni volta ha lasciato un segno diverso. Scrivi come se il tempo fosse un essere vivente.",
+    "eco": [
+      "Un orologio senza lancette ma pieno di battiti.",
+      "Una stagione che torna ogni anno con un nuovo volto.",
+      "Una voce che cambia tono ma ripete lo stesso canto."
+    ],
+    "frase_finale": "Il tempo è un cerchio che cammina.",
+    "sigillo": {
+      "simbolo_dominante": "🕰️",
+      "immagine": "una spirale fatta di calendari strappati",
+      "colore": "#C0C0C0",
+      "forma": "spirale aperta",
+      "codice_sigillo": "SIG-17-TEMPO"
+    }
+  },
+  {
+    "id": "sem_18",
+    "nome": "Il Gesto che Ti Cambia",
+    "icona": "✨",
+    "prompt_base": "Racconta un gesto minuscolo che ha cambiato qualcosa in te. Non spiegare perché: descrivi solo il gesto e ciò che ha spostato dentro di te.",
+    "eco": [
+      "Una carezza data senza preavviso.",
+      "Una parola non detta che ha aperto spazio.",
+      "Un passo laterale verso il vero."
+    ],
+    "frase_finale": "Nel minimo risiede il mutamento.",
+    "sigillo": {
+      "simbolo_dominante": "✨",
+      "immagine": "una mano che sfiora una piuma",
+      "colore": "#BC8F8F",
+      "forma": "onda gentile",
+      "codice_sigillo": "SIG-18-GESTO"
+    }
+  },
+  {
+    "id": "sem_19",
+    "nome": "La Voce che Ti Chiama",
+    "icona": "📣",
+    "prompt_base": "Scrivi come se rispondessi a una voce che ti ha sempre chiamato senza nome. Cosa diresti se potessi finalmente rispondere?",
+    "eco": [
+      "Un suono che ritorna sempre uguale.",
+      "Un nome che ti sfiora senza mai definirti.",
+      "Una frequenza che vibra nel petto."
+    ],
+    "frase_finale": "La tua voce vera conosce il nome che non hai mai detto.",
+    "sigillo": {
+      "simbolo_dominante": "📣",
+      "immagine": "un'onda sonora che si spezza in petali",
+      "colore": "#DC143C",
+      "forma": "onda risonante",
+      "codice_sigillo": "SIG-19-VOCE"
+    }
+  },
+  {
+    "id": "sem_20",
+    "nome": "Il Sogno che Ti Insegue",
+    "icona": "🌙",
+    "prompt_base": "Scrivi di un sogno che torna spesso. Non interpretarlo: descrivilo come se lo stessi vivendo ora, con immagini, suoni e dettagli sensoriali.",
+    "eco": [
+      "Una porta che non si apre mai del tutto.",
+      "Un volto familiare ma irraggiungibile.",
+      "Un'eco che continua dopo il risveglio."
+    ],
+    "frase_finale": "I sogni sono verità in maschera.",
+    "sigillo": {
+      "simbolo_dominante": "🌙",
+      "immagine": "una luna che sorge da un letto sfatto",
+      "colore": "#483D8B",
+      "forma": "mezzaluna d'acqua",
+      "codice_sigillo": "SIG-20-SOGNO"
+    }
+  },
+  {
+    "id": "sem_21",
+    "nome": "Il Vuoto che Ti Appartiene",
+    "icona": "🕳️",
+    "prompt_base": "Scrivi di uno spazio interno che è sempre rimasto vuoto. Non cercare di riempirlo: raccontalo come lo si abita.",
+    "eco": [
+      "Una stanza senza mobili, ma con memoria sulle pareti.",
+      "Un respiro sospeso tra due nomi dimenticati.",
+      "Una soglia che si apre solo quando non la cerchi."
+    ],
+    "frase_finale": "Chi sei, quando nessuno ti chiama?",
+    "sigillo": {
+      "simbolo_dominante": "🕳️",
+      "immagine": "una stanza vuota con un'eco sul pavimento",
+      "colore": "#2E2E2E",
+      "forma": "cerchio incompleto",
+      "codice_sigillo": "SIG-21-VOCE-VUOTA"
+    }
+  },
+  {
+    "id": "sem_22",
+    "nome": "Il Ritorno che Non Attendevi",
+    "icona": "↩️",
+    "prompt_base": "Scrivi di qualcosa che credevi perduto, e che è tornato. Racconta il momento in cui lo hai riconosciuto, non quando l'hai ritrovato.",
+    "eco": [
+      "Una melodia dimenticata che rinasce tra le foglie.",
+      "Un odore che riapre un ricordo sepolto.",
+      "Un volto che appare in sogno come allora."
+    ],
+    "frase_finale": "Nulla si perde per sempre se ha toccato l'anima.",
+    "sigillo": {
+      "simbolo_dominante": "↩️",
+      "immagine": "un sentiero che torna al cuore",
+      "colore": "#4B0082",
+      "forma": "arco chiuso",
+      "codice_sigillo": "SIG-22-RITORNO"
+    }
+  },
+  {
+    "id": "sem_23",
+    "nome": "Ciò che Non Era Tuo ma Ti Ha Plasmato",
+    "icona": "🧬",
+    "prompt_base": "Descrivi un'abitudine, un pensiero o un giudizio che non hai scelto ma che vive in te. Quando ti sei accorto che non era tuo?",
+    "eco": [
+      "Un gesto ereditato che non comprendi.",
+      "Un giudizio che suona come una voce antica.",
+      "Un'abitudine che parla con parole altrui."
+    ],
+    "frase_finale": "Ogni eredità non riconosciuta diventa destino.",
+    "sigillo": {
+      "simbolo_dominante": "🧬",
+      "immagine": "una doppia elica fatta di frasi altrui",
+      "colore": "#3CB371",
+      "forma": "filamento intrecciato",
+      "codice_sigillo": "SIG-23-EREDITA"
+    }
+  },
+  {
+    "id": "sem_24",
+    "nome": "Il Dono che Non Sai Offrire",
+    "icona": "🎁",
+    "prompt_base": "Scrivi di qualcosa che potresti offrire al mondo ma che non riesci a donare. Non dire perché: fermati prima di spiegarlo.",
+    "eco": [
+      "Un fiore chiuso nella mano.",
+      "Un canto trattenuto nella gola.",
+      "Una luce che vibra dietro gli occhi."
+    ],
+    "frase_finale": "Il dono inespresso che continua a chiedere di nascere.",
+    "sigillo": {
+      "simbolo_dominante": "🎁",
+      "immagine": "una mano tesa che non si apre del tutto",
+      "colore": "#DAA520",
+      "forma": "cubo incompleto",
+      "codice_sigillo": "SIG-24-DONO"
+    }
+  },
+  {
+    "id": "sem_99",
+    "nome": "L'Eco Universale",
+    "icona": "🌌",
+    "prompt_base": "Ascolta l'eco che risuona tra tutti i semi. Cosa senti nel silenzio tra le tue parole?",
+    "eco": [
+      "La voce di tutti i semi che vibra nell'aria.",
+      "Un eco che lega ogni respiro al cosmo.",
+      "Il suono dell'anima che riconosce se stessa."
+    ],
+    "frase_finale": "Nell'eco di ogni parola vive l'infinito che sei.",
+    "sigillo": {
+      "simbolo_dominante": "🌌",
+      "immagine": "una galassia che nasce da un sussurro",
+      "colore": "#191970",
+      "forma": "spirale cosmica",
+      "codice_sigillo": "SIG-99-ECO-UNIVERSALE"
+    }
+  },
+  {
+    "id": "archetipo_il_viandante",
+    "nome": "Il Viandante",
+    "prompt_base": "",
+    "sigillo": {
+      "simbolo_dominante": "🧭",
+      "immagine": "un sentiero che si perde all'orizzonte",
+      "colore": "#1E90FF",
+      "forma": "spirale aperta",
+      "codice_sigillo": "ARCH-101"
+    },
+    "frase_finale": ""
+  },
+  {
+    "id": "archetipo_il_custode",
+    "nome": "Il Custode",
+    "prompt_base": "",
+    "sigillo": {
+      "simbolo_dominante": "🛡️",
+      "immagine": "uno scudo che abbraccia una fiamma",
+      "colore": "#228B22",
+      "forma": "cerchio protettivo",
+      "codice_sigillo": "ARCH-102"
+    },
+    "frase_finale": ""
+  },
+  {
+    "id": "archetipo_l_alchimista",
+    "nome": "L'Alchimista",
+    "prompt_base": "",
+    "sigillo": {
+      "simbolo_dominante": "⚗️",
+      "immagine": "un crogiolo da cui si sprigiona luce dorata",
+      "colore": "#FFD700",
+      "forma": "triangolo intrecciato",
+      "codice_sigillo": "ARCH-103"
+    },
+    "frase_finale": ""
+  },
+  {
+    "id": "archetipo_la_sentinella",
+    "nome": "La Sentinella",
+    "prompt_base": "",
+    "sigillo": {
+      "simbolo_dominante": "👁️",
+      "immagine": "un occhio che veglia su una soglia luminosa",
+      "colore": "#8A2BE2",
+      "forma": "ellisse radiante",
+      "codice_sigillo": "ARCH-104"
+    },
+    "frase_finale": ""
+  },
+  {
+    "id": "archetipo_il_sognatore",
+    "nome": "Il Sognatore",
+    "prompt_base": "",
+    "sigillo": {
+      "simbolo_dominante": "🌙",
+      "immagine": "una luna che riflette mille stelle",
+      "colore": "#00BFFF",
+      "forma": "mezzaluna",
+      "codice_sigillo": "ARCH-105"
+    },
+    "frase_finale": ""
+  },
+  {
+    "id": "archetipo_il_guaritore",
+    "nome": "Il Guaritore",
+    "prompt_base": "",
+    "sigillo": {
+      "simbolo_dominante": "💧",
+      "immagine": "una goccia che racchiude una foglia",
+      "colore": "#20B2AA",
+      "forma": "goccia",
+      "codice_sigillo": "ARCH-106"
+    },
+    "frase_finale": ""
+  },
+  {
+    "id": "archetipo_il_ribelle",
+    "nome": "Il Ribelle",
+    "prompt_base": "",
+    "sigillo": {
+      "simbolo_dominante": "🔥",
+      "immagine": "una fiamma che spezza una catena",
+      "colore": "#FF4500",
+      "forma": "onda spezzata",
+      "codice_sigillo": "ARCH-107"
+    },
+    "frase_finale": ""
+  },
+  {
+    "id": "archetipo_il_saggio",
+    "nome": "Il Saggio",
+    "prompt_base": "",
+    "sigillo": {
+      "simbolo_dominante": "🦉",
+      "immagine": "un gufo su un ramo sotto la luna piena",
+      "colore": "#A0522D",
+      "forma": "cerchio con piume",
+      "codice_sigillo": "ARCH-108"
+    },
+    "frase_finale": ""
+  }
+]
